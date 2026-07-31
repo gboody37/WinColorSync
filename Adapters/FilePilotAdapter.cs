@@ -27,7 +27,6 @@ namespace WinColorSync.Adapters
                     string secondaryHex = StripHash(palette.SecondaryAccentHex);
                     string textHex = StripHash(palette.ContrastTextHex);
 
-                    // Update key colors in FPilot-Config.json
                     content = UpdateJsonColorKey(content, "Clear", bgHex);
                     content = UpdateJsonColorKey(content, "Caption", bgHex);
                     content = UpdateJsonColorKey(content, "Background", bgHex);
@@ -51,7 +50,6 @@ namespace WinColorSync.Adapters
                     File.WriteAllText(configPath, content);
                     Console.WriteLine("[FilePilotAdapter] File Pilot FPilot-Config.json updated.");
 
-                    // Restart FPilot.exe if currently running to apply colors instantly
                     Process[] processes = Process.GetProcessesByName("FPilot");
                     if (processes.Length > 0)
                     {
@@ -75,7 +73,7 @@ namespace WinColorSync.Adapters
 
         private static string UpdateJsonColorKey(string json, string key, string hexValue)
         {
-            string pattern = string.Format(@"(?<=`"{0}`"\s*:\s*`")[0-9A-Fa-f]{{6}}(?=`")", key).Replace('`', '"');
+            string pattern = "(?<=\"" + key + "\"\\s*:\\s*\")[0-9A-Fa-f]{6}(?=\")";
             return Regex.Replace(json, pattern, hexValue);
         }
 
