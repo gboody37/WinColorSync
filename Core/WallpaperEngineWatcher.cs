@@ -36,7 +36,6 @@ namespace WinColorSync.Core
             {
                 try
                 {
-                    // 1. Watch config.json in Wallpaper Engine directory
                     _configWatcher = new FileSystemWatcher(wpPath)
                     {
                         Filter = "config.json",
@@ -47,7 +46,6 @@ namespace WinColorSync.Core
                 }
                 catch { }
 
-                // 2. Watch Steam Workshop folder 431960 if present
                 string workshopPath = GetSteamWorkshopPath(wpPath);
                 if (!string.IsNullOrEmpty(workshopPath) && Directory.Exists(workshopPath))
                 {
@@ -67,9 +65,8 @@ namespace WinColorSync.Core
                 }
             }
 
-            // 3. Periodic polling fallback (every 3 seconds) for instant detection on wallpaper swap
             _pollTimer = new Timer();
-            _pollTimer.Interval = 3000;
+            _pollTimer.Interval = 2000;
             _pollTimer.Tick += (s, e) => CheckCurrentWallpaper();
             _pollTimer.Start();
 
@@ -107,16 +104,13 @@ namespace WinColorSync.Core
         {
             try
             {
-                // Method 1: Read active wallpaper path from Wallpaper Engine's config.json
                 string wpImage = ParseActiveWallpaperFromConfig();
 
-                // Method 2: Scan Workshop & Project directories for latest preview
                 if (string.IsNullOrEmpty(wpImage) || !File.Exists(wpImage))
                 {
                     wpImage = FindLatestWorkshopOrProjectPreview();
                 }
 
-                // Method 3: Windows Native Wallpaper fallback
                 if (string.IsNullOrEmpty(wpImage) || !File.Exists(wpImage))
                 {
                     wpImage = GetWindowsNativeWallpaperPath();
@@ -139,19 +133,14 @@ namespace WinColorSync.Core
                             return copy;
                         }
                     }
-                }
-                else
-                {
-                    // Method 4: Desktop screen capture fallback for video/web wallpapers
-                    Bitmap screenCap = CaptureDesktopSnapshot();
-                    if (screenCap != null && _lastWallpaperPath != "screencap")
+                    else
                     {
-                        _lastWallpaperPath = "screencap";
-                        if (WallpaperChanged != null)
+                        // If same path requested manually (e.g. Sync Now button click)
+                        using (FileStream stream = new FileStream(wpImage, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                         {
-                            WallpaperChanged(this, screenCap);
+                            Bitmap bmp = new Bitmap(stream);
+                            return new Bitmap(bmp);
                         }
-                        return screenCap;
                     }
                 }
             }
@@ -175,20 +164,29 @@ namespace WinColorSync.Core
             {
                 string json = File.ReadAllText(configPath);
 
-                // Match "file" : "C:/.../workshop/content/431960/12345/..." or project.json
+                // Find active selectedwallpapers block for Monitor0 / active display
+                Match match = Regex.Match(json, @"""selectedwallpapers""\s*:\s*\{[^}]*""file""\s*:\s*""([^""]+)""", RegexOptions.Singleline | RegexOptions.RightToLeft);
+                if (match.Success)
+                {
+                    string filePath = match.Groups[1].Value.Replace('/', '\\');
+                    string dirPath = Path.GetDirectoryName(filePath);
+                    if (Directory.Exists(dirPath))
+                    {
+                        string preview = FindPreviewInDir(dirPath);
+                        if (!string.IsNullOrEmpty(preview)) return preview;
+                    }
+                }
+
+                // Fallback: search all file entries from bottom of config.json
                 MatchCollection matches = Regex.Matches(json, @"""file""\s*:\s*""([^""]+)""");
                 for (int i = matches.Count - 1; i >= 0; i--)
                 {
                     string filePath = matches[i].Groups[1].Value.Replace('/', '\\');
                     string dirPath = Path.GetDirectoryName(filePath);
-
                     if (Directory.Exists(dirPath))
                     {
                         string preview = FindPreviewInDir(dirPath);
-                        if (!string.IsNullOrEmpty(preview))
-                        {
-                            return preview;
-                        }
+                        if (!string.IsNullOrEmpty(preview)) return preview;
                     }
                 }
             }
@@ -239,24 +237,6 @@ namespace WinColorSync.Core
             return null;
         }
 
-        private Bitmap CaptureDesktopSnapshot()
-        {
-            try
-            {
-                Rectangle bounds = Screen.PrimaryScreen.Bounds;
-                Bitmap bmp = new Bitmap(bounds.Width, bounds.Height, PixelFormat.Format32bppArgb);
-                using (Graphics g = Graphics.FromImage(bmp))
-                {
-                    g.CopyFromScreen(bounds.X, bounds.Y, 0, 0, bounds.Size, CopyPixelOperation.SourceCopy);
-                }
-                return bmp;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
         private string GetWindowsNativeWallpaperPath()
         {
             try
@@ -279,7 +259,6 @@ namespace WinColorSync.Core
         {
             if (string.IsNullOrEmpty(wpPath)) return null;
 
-            // e.g. C:\Program Files (x86)\Steam\steamapps\common\wallpaper_engine -> C:\Program Files (x86)\Steam\steamapps\workshop\content\431960
             string steamapps = Path.GetFullPath(Path.Combine(wpPath, @"..\.."));
             string workshopPath = Path.Combine(steamapps, @"workshop\content\431960");
             if (Directory.Exists(workshopPath)) return workshopPath;
