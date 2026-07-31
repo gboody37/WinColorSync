@@ -39,7 +39,7 @@ function Get-ActiveWallpaperImage {
                 $dir = Split-Path $file -Parent
                 if (Test-Path $dir) {
                     $preview = Get-ChildItem -Path $dir -Include "preview.jpg","preview.png","preview.gif" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-                    if ($preview) { return $preview.FullName }
+                    if ($preview) { return @{ Image = $preview.FullName; RawFile = $file } }
                 }
             }
         } catch {}
@@ -49,16 +49,31 @@ function Get-ActiveWallpaperImage {
     $workshopDir = Join-Path $steamapps "workshop\content\431960"
     if (Test-Path $workshopDir) {
         $latest = Get-ChildItem -Path $workshopDir -Include "preview.jpg","preview.png" -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-        if ($latest) { return $latest.FullName }
+        if ($latest) { return @{ Image = $latest.FullName; RawFile = $latest.FullName } }
     }
 
     $transcoded = "$env:APPDATA\Microsoft\Windows\Themes\TranscodedWallpaper"
-    if (Test-Path $transcoded) { return $transcoded }
+    if (Test-Path $transcoded) { return @{ Image = $transcoded; RawFile = $transcoded } }
 
     return $null
 }
 
-function Extract-ColorPalette($imgPath) {
+function Extract-ColorPalette($wpData) {
+    $imgPath = $wpData.Image
+    $rawFile = $wpData.RawFile
+
+    # 1. Catppuccin Mocha Special Theme Detection
+    if ($rawFile -like "*catppuccin*" -or $rawFile -like "*mocha*" -or $imgPath -like "*catppuccin*" -or $imgPath -like "*mocha*") {
+        return @{
+            BgHex = "1E1E2E"        # Catppuccin Mocha Base
+            SurfaceHex = "181825"   # Catppuccin Mocha Mantle
+            AccentHex = "B4BEFE"    # Catppuccin Mocha Lavender Accent
+            SecondaryHex = "89B4FA" # Catppuccin Mocha Blue
+            BorderHex = "313244"    # Catppuccin Mocha Surface0
+            TextHex = "CDD6F4"      # Catppuccin Mocha Text
+        }
+    }
+
     if (-not (Test-Path $imgPath)) { return $null }
 
     try {
@@ -67,7 +82,7 @@ function Extract-ColorPalette($imgPath) {
         $img.Dispose()
 
         $rTot = 0; $gTot = 0; $bTot = 0; $count = 0
-        $maxSat = 0; $accentR = 0; $accentG = 120; $accentB = 215
+        $maxSat = 0; $accentR = 180; $accentG = 190; $accentB = 254
 
         for ($x = 0; $x -lt 100; $x += 2) {
             for ($y = 0; $y -lt 100; $y += 2) {
@@ -78,7 +93,8 @@ function Extract-ColorPalette($imgPath) {
                 $min = [Math]::Min($pixel.R, [Math]::Min($pixel.G, $pixel.B))
                 $sat = if ($max -gt 0) { ($max - $min) / $max } else { 0 }
 
-                if ($sat -gt $maxSat -and $pixel.R -gt 20) {
+                # Filter out raw green muddy noise unless it's dominant
+                if ($sat -gt $maxSat -and ($pixel.B -gt $pixel.G -or $pixel.R -gt $pixel.G -or $sat -gt 0.35)) {
                     $maxSat = $sat
                     $accentR = $pixel.R; $accentG = $pixel.G; $accentB = $pixel.B
                 }
@@ -92,19 +108,21 @@ function Extract-ColorPalette($imgPath) {
         $avgG = [int]($gTot / $count)
         $avgB = [int]($bTot / $count)
 
-        $bgR = [Math]::Min(35, [int]($avgR * 0.25))
-        $bgG = [Math]::Min(35, [int]($avgG * 0.25))
-        $bgB = [Math]::Min(35, [int]($avgB * 0.25))
+        # Standard Catppuccin-inspired dark background calculation
+        $bgR = [Math]::Min(30, [int]($avgR * 0.22))
+        $bgG = [Math]::Min(30, [int]($avgG * 0.22))
+        $bgB = [Math]::Min(46, [int]($avgB * 0.30 + 10))
 
-        $surfaceR = [Math]::Min(60, [int]($bgR + 15))
-        $surfaceG = [Math]::Min(60, [int]($bgG + 15))
-        $surfaceB = [Math]::Min(60, [int]($bgB + 15))
+        $surfaceR = [Math]::Min(40, [int]($bgR + 10))
+        $surfaceG = [Math]::Min(40, [int]($bgG + 10))
+        $surfaceB = [Math]::Min(55, [int]($bgB + 12))
 
         return @{
             BgHex = "{0:X2}{1:X2}{2:X2}" -f $bgR, $bgG, $bgB
             SurfaceHex = "{0:X2}{1:X2}{2:X2}" -f $surfaceR, $surfaceG, $surfaceB
             AccentHex = "{0:X2}{1:X2}{2:X2}" -f $accentR, $accentG, $accentB
-            TextHex = "E7E7E7"
+            BorderHex = "{0:X2}{1:X2}{2:X2}" -f $accentR, $accentG, $accentB
+            TextHex = "CDD6F4"
         }
     } catch {
         return $null
@@ -121,12 +139,13 @@ function Update-FilePilot($palette) {
             $bg = $palette.BgHex
             $surface = $palette.SurfaceHex
             $accent = $palette.AccentHex
+            $border = $palette.BorderHex
             $text = $palette.TextHex
 
             $map = @{
                 "Clear" = $bg; "Caption" = $bg; "Background" = $bg; "AlternatingRow" = $bg
                 "Surface" = $surface; "Inner" = $surface
-                "Border" = $accent; "Outline" = $accent; "Separator" = $accent; "SurfaceSeparator" = $accent
+                "Border" = $border; "Outline" = $border; "Separator" = $border; "SurfaceSeparator" = $border
                 "IconTint" = $accent; "Group" = $accent; "Progress" = $accent; "Selection" = $accent
                 "RectSelection" = $accent; "Match" = $accent
                 "Foreground" = $text; "File" = $text; "Folder" = $text
@@ -178,14 +197,14 @@ function Update-Antigravity($palette) {
 
 # Main loop
 while ($true) {
-    $activeImg = Get-ActiveWallpaperImage
-    if ($activeImg) {
-        $writeTime = (Get-Item $activeImg).LastWriteTime.Ticks
-        $key = "$activeImg`_$writeTime"
+    $wpData = Get-ActiveWallpaperImage
+    if ($wpData -and $wpData.Image) {
+        $writeTime = (Get-Item $wpData.Image).LastWriteTime.Ticks
+        $key = "$($wpData.Image)_$writeTime"
 
         if ($key -ne $lastWallpaperKey) {
             $lastWallpaperKey = $key
-            $palette = Extract-ColorPalette $activeImg
+            $palette = Extract-ColorPalette $wpData
             if ($palette) {
                 Update-FilePilot $palette
                 Update-Antigravity $palette
