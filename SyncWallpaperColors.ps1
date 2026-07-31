@@ -59,72 +59,14 @@ function Get-ActiveWallpaperImage {
 }
 
 function Extract-ColorPalette($wpData) {
-    $imgPath = $wpData.Image
-    $rawFile = $wpData.RawFile
-
-    # Catppuccin Mocha Official Palette
-    if ($rawFile -like "*catppuccin*" -or $rawFile -like "*mocha*" -or $imgPath -like "*catppuccin*" -or $imgPath -like "*mocha*") {
-        return @{
-            BgHex = "1E1E2E"        # Base
-            SurfaceHex = "181825"   # Mantle
-            AccentHex = "B4BEFE"    # Lavender
-            SecondaryHex = "A6ADC8" # Subtext
-            BorderHex = "313244"    # Surface0
-            TextHex = "CDD6F4"      # Text
-        }
-    }
-
-    if (-not (Test-Path $imgPath)) { return $null }
-
-    try {
-        $img = [System.Drawing.Image]::FromFile($imgPath)
-        $bmp = New-Object System.Drawing.Bitmap($img, 100, 100)
-        $img.Dispose()
-
-        $rTot = 0; $gTot = 0; $bTot = 0; $count = 0
-        $maxSat = 0; $accentR = 180; $accentG = 190; $accentB = 254
-
-        for ($x = 0; $x -lt 100; $x += 2) {
-            for ($y = 0; $y -lt 100; $y += 2) {
-                $pixel = $bmp.GetPixel($x, $y)
-                $rTot += $pixel.R; $gTot += $pixel.G; $bTot += $pixel.B; $count++
-
-                $max = [Math]::Max($pixel.R, [Math]::Max($pixel.G, $pixel.B))
-                $min = [Math]::Min($pixel.R, [Math]::Min($pixel.G, $pixel.B))
-                $sat = if ($max -gt 0) { ($max - $min) / $max } else { 0 }
-
-                if ($sat -gt $maxSat -and ($pixel.B -gt $pixel.G -or $pixel.R -gt $pixel.G -or $sat -gt 0.35)) {
-                    $maxSat = $sat
-                    $accentR = $pixel.R; $accentG = $pixel.G; $accentB = $pixel.B
-                }
-            }
-        }
-        $bmp.Dispose()
-
-        if ($count -eq 0) { return $null }
-
-        $avgR = [int]($rTot / $count)
-        $avgG = [int]($gTot / $count)
-        $avgB = [int]($bTot / $count)
-
-        $bgR = [Math]::Min(30, [int]($avgR * 0.22))
-        $bgG = [Math]::Min(30, [int]($avgG * 0.22))
-        $bgB = [Math]::Min(46, [int]($avgB * 0.30 + 10))
-
-        $surfaceR = [Math]::Min(40, [int]($bgR + 10))
-        $surfaceG = [Math]::Min(40, [int]($bgG + 10))
-        $surfaceB = [Math]::Min(55, [int]($bgB + 12))
-
-        return @{
-            BgHex = "{0:X2}{1:X2}{2:X2}" -f $bgR, $bgG, $bgB
-            SurfaceHex = "{0:X2}{1:X2}{2:X2}" -f $surfaceR, $surfaceG, $surfaceB
-            AccentHex = "{0:X2}{1:X2}{2:X2}" -f $accentR, $accentG, $accentB
-            SecondaryHex = "A6ADC8"
-            BorderHex = "{0:X2}{1:X2}{2:X2}" -f $accentR, $accentG, $accentB
-            TextHex = "CDD6F4"
-        }
-    } catch {
-        return $null
+    # Cozy Reddish Beige-Orange Custom Palette Default
+    return @{
+        BgHex = "1A1412"        # Deep Cozy Dark Espresso
+        SurfaceHex = "241C18"   # Cozy Warm Wood/Roast
+        AccentHex = "E76F51"    # Cozy Sunset Terracotta Reddish-Orange
+        SecondaryHex = "F4A261" # Warm Golden Beige-Orange
+        BorderHex = "3A2B24"    # Cozy Warm Border
+        TextHex = "F5EBE6"      # Soft Warm Cream Beige Text
     }
 }
 
