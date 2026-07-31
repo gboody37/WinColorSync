@@ -1,7 +1,8 @@
 <Window x:Class="WinColorSync.UI.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="WinColorSync - Wallpaper Engine System Synchronizer" Height="580" Width="720"
+        Title="WinColorSync - Wallpaper Engine System Synchronizer" Height="600" Width="740"
+        Icon="../AppIcon.ico"
         Background="#18181C" Foreground="#FFFFFF"
         WindowStartupLocation="CenterScreen" ResizeMode="CanMinimize">
     <Grid Margin="20">
@@ -14,7 +15,8 @@
 
         <!-- Header -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,15">
-            <TextBlock Text="🎨 WinColorSync" FontSize="24" FontWeight="Bold" Foreground="#0078D7" VerticalAlignment="Center"/>
+            <Image Source="../AppIcon.ico" Width="28" Height="28" Margin="0,0,10,0"/>
+            <TextBlock Text="WinColorSync" FontSize="24" FontWeight="Bold" Foreground="#0078D7" VerticalAlignment="Center"/>
             <TextBlock Text="v1.0" FontSize="14" Foreground="#888888" Margin="10,0,0,0" VerticalAlignment="Bottom"/>
         </StackPanel>
 
@@ -76,14 +78,16 @@
                     <CheckBox x:Name="ChkExportFiles" Content="Export theme.css &amp; theme.json for custom web apps / browsers" IsChecked="True" Foreground="#FFFFFF" Margin="0,4"/>
 
                     <!-- Custom Wallpaper Engine Folder Input -->
-                    <TextBlock Text="Wallpaper Engine Path (Optional Override):" Foreground="#AAAAAA" FontSize="12" Margin="0,10,0,4"/>
+                    <TextBlock Text="Wallpaper Engine Path:" Foreground="#AAAAAA" FontSize="12" Margin="0,10,0,4"/>
                     <Grid Margin="0,0,0,5">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <TextBox x:Name="TxtWpPath" Background="#18181C" Foreground="#FFFFFF" BorderBrush="#444444" Padding="5" FontSize="12"/>
-                        <Button Grid.Column="1" x:Name="BtnBrowsePath" Content="📁 Browse..." Margin="8,0,0,0" Padding="10,4" Background="#333338" Foreground="#FFFFFF" Click="BtnBrowsePath_Click"/>
+                        <Button Grid.Column="1" x:Name="BtnAutoDetect" Content="🔍 Auto-Detect" Margin="8,0,0,0" Padding="10,4" Background="#0078D7" Foreground="#FFFFFF" FontWeight="Bold" Click="BtnAutoDetect_Click"/>
+                        <Button Grid.Column="2" x:Name="BtnBrowsePath" Content="📁 Browse..." Margin="6,0,0,0" Padding="10,4" Background="#333338" Foreground="#FFFFFF" Click="BtnBrowsePath_Click"/>
                     </Grid>
                 </StackPanel>
             </ScrollViewer>
@@ -99,9 +103,10 @@
             <TextBlock x:Name="TxtStatus" Text="Status: Ready" Foreground="#888888" VerticalAlignment="Center"/>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <Button x:Name="BtnSaveSettings" Content="💾 Save Settings" Width="120" Height="35" Background="#28a745" Foreground="#FFFFFF" FontWeight="Bold" Click="BtnSaveSettings_Click" Margin="0,0,8,0"/>
-                <Button x:Name="BtnSyncNow" Content="⚡ Sync Now" Width="110" Height="35" Background="#0078D7" Foreground="#FFFFFF" FontWeight="Bold" Click="BtnSyncNow_Click" Margin="0,0,8,0"/>
-                <Button x:Name="BtnMinimizeTray" Content="📌 Minimize to Tray" Width="130" Height="35" Background="#333338" Foreground="#FFFFFF" Click="BtnMinimizeTray_Click"/>
+                <Button x:Name="BtnSaveSettings" Content="💾 Save Settings" Width="110" Height="35" Background="#28a745" Foreground="#FFFFFF" FontWeight="Bold" Click="BtnSaveSettings_Click" Margin="0,0,6,0"/>
+                <Button x:Name="BtnCaptureScreen" Content="📸 Screen Capture" Width="120" Height="35" Background="#6f42c1" Foreground="#FFFFFF" FontWeight="Bold" Click="BtnCaptureScreen_Click" Margin="0,0,6,0"/>
+                <Button x:Name="BtnSyncNow" Content="⚡ Sync Now" Width="100" Height="35" Background="#0078D7" Foreground="#FFFFFF" FontWeight="Bold" Click="BtnSyncNow_Click" Margin="0,0,6,0"/>
+                <Button x:Name="BtnMinimizeTray" Content="📌 Tray" Width="60" Height="35" Background="#333338" Foreground="#FFFFFF" Click="BtnMinimizeTray_Click"/>
             </StackPanel>
         </Grid>
     </Grid>

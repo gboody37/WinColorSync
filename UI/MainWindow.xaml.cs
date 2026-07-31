@@ -22,6 +22,11 @@ namespace WinColorSync.UI
             InitializeTrayIcon();
             LoadSettings();
 
+            if (string.IsNullOrEmpty(TxtWpPath.Text))
+            {
+                TxtWpPath.Text = WallpaperEngineWatcher.AutoDetectWallpaperEnginePath();
+            }
+
             _watcher = new WallpaperEngineWatcher(TxtWpPath.Text);
             _watcher.WallpaperChanged += OnWallpaperChanged;
             _watcher.Start();
@@ -40,15 +45,27 @@ namespace WinColorSync.UI
 
         private void InitializeTrayIcon()
         {
+            Icon icon = SystemIcons.Application;
+            try
+            {
+                string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppIcon.ico");
+                if (File.Exists(iconPath))
+                {
+                    icon = new Icon(iconPath);
+                }
+            }
+            catch { }
+
             _notifyIcon = new NotifyIcon
             {
-                Icon = SystemIcons.Application,
+                Icon = icon,
                 Text = "WinColorSync - Wallpaper Engine Synchronizer",
                 Visible = true
             };
 
             ContextMenu contextMenu = new ContextMenu();
             contextMenu.MenuItems.Add("⚡ Sync Now", (s, e) => PerformSync());
+            contextMenu.MenuItems.Add("📸 Capture Screen Colors", (s, e) => PerformScreenCapture());
             contextMenu.MenuItems.Add("⚙️ Settings / Dashboard", (s, e) => ShowDashboard());
             contextMenu.MenuItems.Add("-");
             contextMenu.MenuItems.Add("❌ Exit", (s, e) => ExitApp());
@@ -195,15 +212,49 @@ namespace WinColorSync.UI
             }
             else
             {
-                _currentPalette = ColorExtractor.GetDefaultPalette();
+                PerformScreenCapture();
+            }
+        }
+
+        private void PerformScreenCapture()
+        {
+            Hide();
+            System.Threading.Thread.Sleep(300);
+            Bitmap screenBmp = _watcher.CapturePrimaryScreen();
+            Show();
+            if (screenBmp != null)
+            {
+                _currentPalette = ColorExtractor.ExtractPalette(screenBmp);
                 UpdateUiPalette(_currentPalette);
                 ApplySelectedAdapters(_currentPalette);
+                TxtStatus.Text = string.Format("Status: Captured screen colors at {0:HH:mm:ss}", DateTime.Now);
             }
         }
 
         private void BtnSyncNow_Click(object sender, RoutedEventArgs e)
         {
             PerformSync();
+        }
+
+        private void BtnCaptureScreen_Click(object sender, RoutedEventArgs e)
+        {
+            PerformScreenCapture();
+        }
+
+        private void BtnAutoDetect_Click(object sender, RoutedEventArgs e)
+        {
+            string detected = WallpaperEngineWatcher.AutoDetectWallpaperEnginePath();
+            if (!string.IsNullOrEmpty(detected))
+            {
+                TxtWpPath.Text = detected;
+                TxtStatus.Text = "Status: Auto-detected Wallpaper Engine at " + detected;
+                SaveSettings();
+                BtnSaveSettings_Click(sender, e);
+            }
+            else
+            {
+                TxtStatus.Text = "Status: Wallpaper Engine not found automatically. Use Browse button.";
+            }
         }
 
         private void BtnSaveSettings_Click(object sender, RoutedEventArgs e)

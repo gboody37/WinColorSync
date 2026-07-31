@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using Microsoft.Win32;
 
 namespace WinColorSync.Core
 {
@@ -66,7 +68,7 @@ namespace WinColorSync.Core
             }
 
             _pollTimer = new Timer();
-            _pollTimer.Interval = 2000;
+            _pollTimer.Interval = 2500;
             _pollTimer.Tick += (s, e) => CheckCurrentWallpaper();
             _pollTimer.Start();
 
@@ -135,7 +137,6 @@ namespace WinColorSync.Core
                     }
                     else
                     {
-                        // If same path requested manually (e.g. Sync Now button click)
                         using (FileStream stream = new FileStream(wpImage, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                         {
                             Bitmap bmp = new Bitmap(stream);
@@ -147,6 +148,88 @@ namespace WinColorSync.Core
             catch (Exception ex)
             {
                 Console.WriteLine("[WallpaperEngineWatcher] Error checking wallpaper: " + ex.Message);
+            }
+
+            return null;
+        }
+
+        public Bitmap CapturePrimaryScreen()
+        {
+            try
+            {
+                Rectangle bounds = Screen.PrimaryScreen.Bounds;
+                Bitmap bmp = new Bitmap(bounds.Width, bounds.Height, PixelFormat.Format32bppArgb);
+                using (Graphics g = Graphics.FromImage(bmp))
+                {
+                    g.CopyFromScreen(bounds.X, bounds.Y, 0, 0, bounds.Size, CopyPixelOperation.SourceCopy);
+                }
+                return bmp;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public static string AutoDetectWallpaperEnginePath()
+        {
+            List<string> searchPaths = new List<string>();
+
+            // 1. Read Steam Registry Path
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Valve\Steam"))
+                {
+                    if (key != null)
+                    {
+                        string steamPath = key.GetValue("SteamPath") as string;
+                        if (!string.IsNullOrEmpty(steamPath))
+                        {
+                            steamPath = steamPath.Replace('/', '\\');
+                            searchPaths.Add(Path.Combine(steamPath, @"steamapps\common\wallpaper_engine"));
+
+                            // Read libraryfolders.vdf
+                            string libraryVdf = Path.Combine(steamPath, @"steamapps\libraryfolders.vdf");
+                            if (File.Exists(libraryVdf))
+                            {
+                                string vdfText = File.ReadAllText(libraryVdf);
+                                MatchCollection matches = Regex.Matches(vdfText, @"""path""\s*""([^""]+)""");
+                                foreach (Match m in matches)
+                                {
+                                    string libPath = m.Groups[1].Value.Replace(@"\\", @"\");
+                                    searchPaths.Add(Path.Combine(libPath, @"steamapps\common\wallpaper_engine"));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            // 2. Fallback to common drive letters
+            string[] defaultPaths = new string[]
+            {
+                @"C:\Program Files (x86)\Steam\steamapps\common\wallpaper_engine",
+                @"C:\Program Files\Steam\steamapps\common\wallpaper_engine",
+                @"D:\SteamLibrary\steamapps\common\wallpaper_engine",
+                @"E:\SteamLibrary\steamapps\common\wallpaper_engine",
+                @"F:\SteamLibrary\steamapps\common\wallpaper_engine",
+                @"D:\Steam\steamapps\common\wallpaper_engine",
+                @"E:\Steam\steamapps\common\wallpaper_engine"
+            };
+            searchPaths.AddRange(defaultPaths);
+
+            foreach (string p in searchPaths)
+            {
+                if (Directory.Exists(p) && File.Exists(Path.Combine(p, "wallpaper32.exe")) || File.Exists(Path.Combine(p, "wallpaper64.exe")))
+                {
+                    return p;
+                }
+            }
+
+            foreach (string p in searchPaths)
+            {
+                if (Directory.Exists(p)) return p;
             }
 
             return null;
@@ -164,7 +247,6 @@ namespace WinColorSync.Core
             {
                 string json = File.ReadAllText(configPath);
 
-                // Find active selectedwallpapers block for Monitor0 / active display
                 Match match = Regex.Match(json, @"""selectedwallpapers""\s*:\s*\{[^}]*""file""\s*:\s*""([^""]+)""", RegexOptions.Singleline | RegexOptions.RightToLeft);
                 if (match.Success)
                 {
@@ -177,7 +259,6 @@ namespace WinColorSync.Core
                     }
                 }
 
-                // Fallback: search all file entries from bottom of config.json
                 MatchCollection matches = Regex.Matches(json, @"""file""\s*:\s*""([^""]+)""");
                 for (int i = matches.Count - 1; i >= 0; i--)
                 {
@@ -273,20 +354,7 @@ namespace WinColorSync.Core
                 return _customWallpaperEnginePath;
             }
 
-            string[] defaultPaths = new string[]
-            {
-                @"C:\Program Files (x86)\Steam\steamapps\common\wallpaper_engine",
-                @"C:\Program Files\Steam\steamapps\common\wallpaper_engine",
-                @"D:\SteamLibrary\steamapps\common\wallpaper_engine",
-                @"E:\SteamLibrary\steamapps\common\wallpaper_engine"
-            };
-
-            foreach (string p in defaultPaths)
-            {
-                if (Directory.Exists(p)) return p;
-            }
-
-            return null;
+            return AutoDetectWallpaperEnginePath();
         }
     }
 }
