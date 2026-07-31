@@ -62,15 +62,15 @@ function Extract-ColorPalette($wpData) {
     $imgPath = $wpData.Image
     $rawFile = $wpData.RawFile
 
-    # 1. Catppuccin Mocha Special Theme Detection
+    # Catppuccin Mocha Official Palette
     if ($rawFile -like "*catppuccin*" -or $rawFile -like "*mocha*" -or $imgPath -like "*catppuccin*" -or $imgPath -like "*mocha*") {
         return @{
-            BgHex = "1E1E2E"        # Catppuccin Mocha Base
-            SurfaceHex = "181825"   # Catppuccin Mocha Mantle
-            AccentHex = "B4BEFE"    # Catppuccin Mocha Lavender Accent
-            SecondaryHex = "89B4FA" # Catppuccin Mocha Blue
-            BorderHex = "313244"    # Catppuccin Mocha Surface0
-            TextHex = "CDD6F4"      # Catppuccin Mocha Text
+            BgHex = "1E1E2E"        # Base
+            SurfaceHex = "181825"   # Mantle
+            AccentHex = "B4BEFE"    # Lavender
+            SecondaryHex = "A6ADC8" # Subtext
+            BorderHex = "313244"    # Surface0
+            TextHex = "CDD6F4"      # Text
         }
     }
 
@@ -93,7 +93,6 @@ function Extract-ColorPalette($wpData) {
                 $min = [Math]::Min($pixel.R, [Math]::Min($pixel.G, $pixel.B))
                 $sat = if ($max -gt 0) { ($max - $min) / $max } else { 0 }
 
-                # Filter out raw green muddy noise unless it's dominant
                 if ($sat -gt $maxSat -and ($pixel.B -gt $pixel.G -or $pixel.R -gt $pixel.G -or $sat -gt 0.35)) {
                     $maxSat = $sat
                     $accentR = $pixel.R; $accentG = $pixel.G; $accentB = $pixel.B
@@ -108,7 +107,6 @@ function Extract-ColorPalette($wpData) {
         $avgG = [int]($gTot / $count)
         $avgB = [int]($bTot / $count)
 
-        # Standard Catppuccin-inspired dark background calculation
         $bgR = [Math]::Min(30, [int]($avgR * 0.22))
         $bgG = [Math]::Min(30, [int]($avgG * 0.22))
         $bgB = [Math]::Min(46, [int]($avgB * 0.30 + 10))
@@ -121,6 +119,7 @@ function Extract-ColorPalette($wpData) {
             BgHex = "{0:X2}{1:X2}{2:X2}" -f $bgR, $bgG, $bgB
             SurfaceHex = "{0:X2}{1:X2}{2:X2}" -f $surfaceR, $surfaceG, $surfaceB
             AccentHex = "{0:X2}{1:X2}{2:X2}" -f $accentR, $accentG, $accentB
+            SecondaryHex = "A6ADC8"
             BorderHex = "{0:X2}{1:X2}{2:X2}" -f $accentR, $accentG, $accentB
             TextHex = "CDD6F4"
         }
@@ -139,6 +138,7 @@ function Update-FilePilot($palette) {
             $bg = $palette.BgHex
             $surface = $palette.SurfaceHex
             $accent = $palette.AccentHex
+            $secondary = $palette.SecondaryHex
             $border = $palette.BorderHex
             $text = $palette.TextHex
 
@@ -148,7 +148,8 @@ function Update-FilePilot($palette) {
                 "Border" = $border; "Outline" = $border; "Separator" = $border; "SurfaceSeparator" = $border
                 "IconTint" = $accent; "Group" = $accent; "Progress" = $accent; "Selection" = $accent
                 "RectSelection" = $accent; "Match" = $accent
-                "Foreground" = $text; "File" = $text; "Folder" = $text
+                "Foreground" = $text; "File" = $text; "Folder" = $text; "Text" = $text
+                "Secondary" = $secondary; "Hover" = $border
             }
 
             foreach ($key in $map.Keys) {
