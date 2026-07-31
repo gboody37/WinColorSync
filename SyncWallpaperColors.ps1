@@ -59,7 +59,6 @@ function Get-ActiveWallpaperImage {
 }
 
 function Extract-ColorPalette($wpData) {
-    # Cozy Reddish Beige-Orange Custom Palette Default
     return @{
         BgHex = "1A1412"        # Deep Cozy Dark Espresso
         SurfaceHex = "241C18"   # Cozy Warm Wood/Roast
@@ -84,22 +83,28 @@ function Update-FilePilot($palette) {
             $border = $palette.BorderHex
             $text = $palette.TextHex
 
-            $map = @{
-                "Clear" = $bg; "Caption" = $bg; "Background" = $bg; "AlternatingRow" = $bg
-                "Surface" = $surface; "Inner" = $surface
-                "Border" = $border; "Outline" = $border; "Separator" = $border; "SurfaceSeparator" = $border
-                "IconTint" = $accent; "Group" = $accent; "Progress" = $accent; "Selection" = $accent
-                "RectSelection" = $accent; "Match" = $accent
-                "Foreground" = $text; "File" = $text; "Folder" = $text; "Text" = $text
-                "Secondary" = $secondary; "Hover" = $border
-            }
+            # Only target "Custom 1" block to preserve "Frappe Mocha" theme safely
+            if ($content -match '"Custom 1":\s*\{[^}]+\}') {
+                $customBlock = $matches[0]
 
-            foreach ($key in $map.Keys) {
-                $color = $map[$key]
-                $content = $content -replace "(?<=`"$key`":\s*`")[0-9A-Fa-f]{6}(?=`")", $color
-            }
+                $map = @{
+                    "Clear" = $bg; "Caption" = $bg; "Background" = $bg; "AlternatingRow" = $bg
+                    "Surface" = $surface; "Inner" = $surface
+                    "Border" = $border; "Outline" = $border; "Separator" = $border; "SurfaceSeparator" = $border
+                    "IconTint" = $accent; "Group" = $accent; "Progress" = $accent; "Selection" = $accent
+                    "RectSelection" = $accent; "Match" = $accent
+                    "Foreground" = $text; "File" = $text; "Folder" = $text; "Text" = $text
+                    "Secondary" = $secondary; "Hover" = $border
+                }
 
-            Set-Content -Path $fpConfig -Value $content -ErrorAction SilentlyContinue
+                foreach ($key in $map.Keys) {
+                    $color = $map[$key]
+                    $customBlock = $customBlock -replace "(?<=`"$key`":\s*`")[0-9A-Fa-f]{6}(?=`")", $color
+                }
+
+                $content = $content -replace '"Custom 1":\s*\{[^}]+\}', $customBlock
+                Set-Content -Path $fpConfig -Value $content -ErrorAction SilentlyContinue
+            }
 
             $procs = Get-Process -Name "FPilot", "FilePilot" -ErrorAction SilentlyContinue
             if ($procs) {
