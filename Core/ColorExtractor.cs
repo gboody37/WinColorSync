@@ -51,6 +51,14 @@ namespace WinColorSync.Core
         }
     }
 
+    public class ClusterInfo
+    {
+        public Color Center { get; set; }
+        public int Count { get; set; }
+        public double Saturation { get; set; }
+        public double Brightness { get; set; }
+    }
+
     public static class ColorExtractor
     {
         public static ColorPalette ExtractPalette(Bitmap originalBitmap)
@@ -60,25 +68,22 @@ namespace WinColorSync.Core
                 return GetDefaultPalette();
             }
 
-            int targetWidth = 100;
+            int targetWidth = 120;
             int targetHeight = (int)((double)originalBitmap.Height / originalBitmap.Width * targetWidth);
-            if (targetHeight <= 0) targetHeight = 100;
+            if (targetHeight <= 0) targetHeight = 120;
 
             using (Bitmap resized = new Bitmap(originalBitmap, new Size(targetWidth, targetHeight)))
             {
                 List<Color> pixels = new List<Color>();
+                double totalBrightness = 0;
+
                 for (int y = 0; y < resized.Height; y += 2)
                 {
                     for (int x = 0; x < resized.Width; x += 2)
                     {
                         Color c = resized.GetPixel(x, y);
-                        double saturation = GetSaturation(c);
-                        double brightness = GetBrightness(c);
-
-                        if (brightness > 0.05 && brightness < 0.95)
-                        {
-                            pixels.Add(c);
-                        }
+                        pixels.Add(c);
+                        totalBrightness += GetBrightness(c);
                     }
                 }
 
@@ -87,23 +92,47 @@ namespace WinColorSync.Core
                     return GetDefaultPalette();
                 }
 
-                List<Color> centers = RunKMeans(pixels, 4, 10);
-                centers.Sort((a, b) => GetSaturation(b).CompareTo(GetSaturation(a)));
-
-                Color primary = centers.Count > 0 ? centers[0] : Color.FromArgb(0, 120, 215);
-                Color secondary = centers.Count > 1 ? centers[1] : Darken(primary, 0.2);
-
-                double totalBrightness = 0;
-                foreach (Color p in pixels)
-                {
-                    totalBrightness += GetBrightness(p);
-                }
                 double avgBrightness = totalBrightness / pixels.Count;
                 bool recommendDark = avgBrightness < 0.6;
 
-                Color darkBg = Color.FromArgb(24, 24, 28);
-                Color lightBg = Color.FromArgb(245, 245, 248);
-                Color surface = recommendDark ? Darken(primary, 0.6) : Lighten(primary, 0.7);
+                // Run K-Means with 6 clusters
+                List<ClusterInfo> clusters = RunKMeansWithFrequency(pixels, 6, 12);
+
+                // Sort clusters by frequency (most dominant first)
+                clusters.Sort((a, b) => b.Count.CompareTo(a.Count));
+
+                // 1. Dominant background color (most frequent cluster)
+                Color dominantBg = clusters.Count > 0 ? clusters[0].Center : Color.FromArgb(24, 24, 28);
+                Color darkBg = recommendDark ? DarkenToBackground(dominantBg) : Color.FromArgb(24, 24, 28);
+                Color lightBg = !recommendDark ? LightenToBackground(dominantBg) : Color.FromArgb(245, 245, 248);
+
+                // 2. Primary Accent: Most vibrant cluster (highest saturation)
+                List<ClusterInfo> vibrantClusters = new List<ClusterInfo>(clusters);
+                vibrantClusters.Sort((a, b) => b.Saturation.CompareTo(a.Saturation));
+
+                Color primary = Color.FromArgb(0, 120, 215);
+                Color secondary = Color.FromArgb(0, 90, 160);
+
+                if (vibrantClusters.Count > 0 && vibrantClusters[0].Saturation > 0.1)
+                {
+                    primary = vibrantClusters[0].Center;
+                }
+                else if (clusters.Count > 0)
+                {
+                    primary = clusters[0].Center;
+                }
+
+                if (vibrantClusters.Count > 1 && vibrantClusters[1].Saturation > 0.08)
+                {
+                    secondary = vibrantClusters[1].Center;
+                }
+                else
+                {
+                    secondary = Darken(primary, 0.25);
+                }
+
+                // 3. Surface Accent: Blend of background and primary accent
+                Color surface = BlendColors(darkBg, primary, 0.15);
                 Color contrastText = recommendDark ? Color.White : Color.Black;
 
                 return new ColorPalette
@@ -119,7 +148,7 @@ namespace WinColorSync.Core
             }
         }
 
-        private static List<Color> RunKMeans(List<Color> pixels, int k, int iterations)
+        private static List<ClusterInfo> RunKMeansWithFrequency(List<Color> pixels, int k, int iterations)
         {
             List<Color> centers = new List<Color>();
             Random rand = new Random();
@@ -129,9 +158,11 @@ namespace WinColorSync.Core
                 centers.Add(pixels[rand.Next(pixels.Count)]);
             }
 
+            List<List<Color>> clusters = new List<List<Color>>();
+
             for (int iter = 0; iter < iterations; iter++)
             {
-                List<List<Color>> clusters = new List<List<Color>>();
+                clusters = new List<List<Color>>();
                 for (int i = 0; i < k; i++) clusters.Add(new List<Color>());
 
                 foreach (Color p in pixels)
@@ -164,7 +195,57 @@ namespace WinColorSync.Core
                 }
             }
 
-            return centers;
+            List<ClusterInfo> result = new List<ClusterInfo>();
+            for (int i = 0; i < k; i++)
+            {
+                Color c = centers[i];
+                result.Add(new ClusterInfo
+                {
+                    Center = c,
+                    Count = clusters[i].Count,
+                    Saturation = GetSaturation(c),
+                    Brightness = GetBrightness(c)
+                });
+            }
+
+            return result;
+        }
+
+        private static Color DarkenToBackground(Color c)
+        {
+            double brightness = GetBrightness(c);
+            if (brightness > 0.25)
+            {
+                double factor = 0.25 / brightness;
+                return Color.FromArgb(
+                    (int)(c.R * factor),
+                    (int)(c.G * factor),
+                    (int)(c.B * factor)
+                );
+            }
+            return c;
+        }
+
+        private static Color LightenToBackground(Color c)
+        {
+            double brightness = GetBrightness(c);
+            if (brightness < 0.85)
+            {
+                return Lighten(c, 0.5);
+            }
+            return c;
+        }
+
+        private static Color BlendColors(Color baseColor, Color overlay, double amount)
+        {
+            int r = (int)(baseColor.R * (1 - amount) + overlay.R * amount);
+            int g = (int)(baseColor.G * (1 - amount) + overlay.G * amount);
+            int b = (int)(baseColor.B * (1 - amount) + overlay.B * amount);
+            return Color.FromArgb(
+                Math.Min(255, Math.Max(0, r)),
+                Math.Min(255, Math.Max(0, g)),
+                Math.Min(255, Math.Max(0, b))
+            );
         }
 
         private static double ColorDistance(Color c1, Color c2)
