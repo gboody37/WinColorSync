@@ -3,6 +3,7 @@ using System.Drawing;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using WinColorSync.Adapters;
 using WinColorSync.Core;
 
@@ -266,6 +267,40 @@ namespace WinColorSync.UI
                 UpdateUiPalette(_currentPalette);
                 ApplySelectedAdapters(_currentPalette);
                 TxtStatus.Text = string.Format("Status: Captured screen colors at {0:HH:mm:ss}", DateTime.Now);
+            }
+        }
+
+        private void Swatch_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            using (System.Windows.Forms.ColorDialog dlg = new System.Windows.Forms.ColorDialog())
+            {
+                dlg.FullOpen = true;
+
+                Color currentColor = Color.White;
+                if (sender == SwatchPrimary) currentColor = ColorPalette.HexToColor(TxtPrimaryHex.Text, Color.FromArgb(0, 120, 215));
+                else if (sender == SwatchSecondary) currentColor = ColorPalette.HexToColor(TxtSecondaryHex.Text, Color.FromArgb(0, 90, 160));
+                else if (sender == SwatchBorder) currentColor = ColorPalette.HexToColor(TxtBorderHex.Text, Color.FromArgb(0, 120, 215));
+                else if (sender == SwatchText) currentColor = ColorPalette.HexToColor(TxtTextHex.Text, Color.White);
+                else if (sender == SwatchSurface) currentColor = ColorPalette.HexToColor(TxtSurfaceHex.Text, Color.FromArgb(32, 40, 50));
+                else if (sender == SwatchBackground) currentColor = ColorPalette.HexToColor(TxtBackgroundHex.Text, Color.FromArgb(24, 24, 28));
+
+                dlg.Color = currentColor;
+
+                if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    string hex = ColorPalette.ColorToHex(dlg.Color);
+
+                    if (sender == SwatchPrimary) TxtPrimaryHex.Text = hex;
+                    else if (sender == SwatchSecondary) TxtSecondaryHex.Text = hex;
+                    else if (sender == SwatchBorder) TxtBorderHex.Text = hex;
+                    else if (sender == SwatchText) TxtTextHex.Text = hex;
+                    else if (sender == SwatchSurface) TxtSurfaceHex.Text = hex;
+                    else if (sender == SwatchBackground) TxtBackgroundHex.Text = hex;
+
+                    _currentPalette = BuildPaletteFromUi();
+                    ApplySelectedAdapters(_currentPalette);
+                    TxtStatus.Text = string.Format("Status: Color selected from wheel at {0:HH:mm:ss}", DateTime.Now);
+                }
             }
         }
 
