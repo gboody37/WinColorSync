@@ -46,7 +46,7 @@ namespace WinColorSync.UI
 
         private void InitializeTrayIcon()
         {
-            Icon icon = SystemIcons.Application;
+            System.Drawing.Icon icon = SystemIcons.Application;
             try
             {
                 string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppIcon.png");
@@ -54,7 +54,7 @@ namespace WinColorSync.UI
                 {
                     using (Bitmap bmp = new Bitmap(iconPath))
                     {
-                        icon = Icon.FromHandle(bmp.GetHicon());
+                        icon = System.Drawing.Icon.FromHandle(bmp.GetHicon());
                     }
                 }
             }
