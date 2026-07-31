@@ -30,18 +30,27 @@
 
 ## 🚀 How to Build & Run
 
-### Option 1: Quick PowerShell Build (Native Windows - No Visual Studio Required)
+### 1. Build the Application (Native Windows - No Setup Required)
 Open PowerShell in the project directory and run:
+
 ```powershell
+Set-Location "E:\Win Color"
 .\build.ps1
 ```
-This will compile `WinColorSync.exe` using native Windows C# compiler (`csc.exe`).
 
-### Option 2: Building via Visual Studio / MSBuild
-1. Open `WinColorSync.csproj` in Visual Studio 2022 or later.
-2. Select **Release | x64** or **Release | Any CPU**.
-3. Press **Build Solution** (`Ctrl+Shift+B`).
-4. Run `bin\Release\WinColorSync.exe`.
+Or run directly from any directory:
+```powershell
+powershell -ExecutionPolicy Bypass -File "E:\Win Color\build.ps1"
+```
+
+This compiles `WinColorSync.exe` using native Windows MSBuild with zero extra tools required.
+
+### 2. Launch the Application
+Run the compiled executable from PowerShell:
+
+```powershell
+& "E:\Win Color\bin\Release\WinColorSync.exe"
+```
 
 ---
 
