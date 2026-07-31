@@ -1,0 +1,19 @@
+# Visual Studio / .NET build outputs
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.userosv
+*.sln.docstates
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Logs & temp files
+*.log
+*.tmp
+.wincolorsync/
