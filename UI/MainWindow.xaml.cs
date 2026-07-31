@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Forms;
 using WinColorSync.Adapters;
 using WinColorSync.Core;
@@ -14,6 +15,7 @@ namespace WinColorSync.UI
         private NotifyIcon _notifyIcon;
         private ColorPalette _currentPalette;
         private string _configPath;
+        private bool _isUpdatingUi = false;
 
         public MainWindow()
         {
@@ -48,10 +50,10 @@ namespace WinColorSync.UI
             Icon icon = SystemIcons.Application;
             try
             {
-                string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppIcon.ico");
+                string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppIcon.png");
                 if (File.Exists(iconPath))
                 {
-                    icon = new Icon(iconPath);
+                    icon = Icon.FromHandle(new Bitmap(iconPath).GetHicon());
                 }
             }
             catch { }
@@ -147,23 +149,57 @@ namespace WinColorSync.UI
         {
             if (palette == null) return;
 
+            _isUpdatingUi = true;
+
             TxtPrimaryHex.Text = palette.PrimaryAccentHex;
-            CardPrimary.Background = new System.Windows.Media.SolidColorBrush(
-                System.Windows.Media.Color.FromRgb(palette.PrimaryAccent.R, palette.PrimaryAccent.G, palette.PrimaryAccent.B));
+            SwatchPrimary.Background = GetMediaBrush(palette.PrimaryAccent);
 
             TxtSecondaryHex.Text = palette.SecondaryAccentHex;
-            CardSecondary.Background = new System.Windows.Media.SolidColorBrush(
-                System.Windows.Media.Color.FromRgb(palette.SecondaryAccent.R, palette.SecondaryAccent.G, palette.SecondaryAccent.B));
+            SwatchSecondary.Background = GetMediaBrush(palette.SecondaryAccent);
+
+            TxtBorderHex.Text = palette.WindowBorderHex;
+            SwatchBorder.Background = GetMediaBrush(palette.WindowBorder);
+
+            TxtTextHex.Text = palette.ContrastTextHex;
+            SwatchText.Background = GetMediaBrush(palette.ContrastText);
 
             TxtSurfaceHex.Text = palette.SurfaceAccentHex;
-            CardSurface.Background = new System.Windows.Media.SolidColorBrush(
-                System.Windows.Media.Color.FromRgb(palette.SurfaceAccent.R, palette.SurfaceAccent.G, palette.SurfaceAccent.B));
+            SwatchSurface.Background = GetMediaBrush(palette.SurfaceAccent);
 
             TxtBackgroundHex.Text = palette.DarkBackgroundHex;
-            CardBackground.Background = new System.Windows.Media.SolidColorBrush(
-                System.Windows.Media.Color.FromRgb(palette.DarkBackground.R, palette.DarkBackground.G, palette.DarkBackground.B));
+            SwatchBackground.Background = GetMediaBrush(palette.DarkBackground);
 
             TxtStatus.Text = string.Format("Status: Last synced at {0:HH:mm:ss}", DateTime.Now);
+
+            _isUpdatingUi = false;
+        }
+
+        private System.Windows.Media.SolidColorBrush GetMediaBrush(Color c)
+        {
+            return new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(c.R, c.G, c.B));
+        }
+
+        private ColorPalette BuildPaletteFromUi()
+        {
+            Color primary = ColorPalette.HexToColor(TxtPrimaryHex.Text, Color.FromArgb(0, 120, 215));
+            Color secondary = ColorPalette.HexToColor(TxtSecondaryHex.Text, Color.FromArgb(0, 90, 160));
+            Color border = ColorPalette.HexToColor(TxtBorderHex.Text, primary);
+            Color text = ColorPalette.HexToColor(TxtTextHex.Text, Color.White);
+            Color surface = ColorPalette.HexToColor(TxtSurfaceHex.Text, Color.FromArgb(32, 40, 50));
+            Color background = ColorPalette.HexToColor(TxtBackgroundHex.Text, Color.FromArgb(24, 24, 28));
+
+            return new ColorPalette
+            {
+                PrimaryAccent = primary,
+                SecondaryAccent = secondary,
+                WindowBorder = border,
+                ContrastText = text,
+                SurfaceAccent = surface,
+                DarkBackground = background,
+                LightBackground = Color.FromArgb(245, 245, 248),
+                IsDarkThemeRecommended = ColorExtractor.GetBrightness(background) < 0.6
+            };
         }
 
         private void ApplySelectedAdapters(ColorPalette palette)
@@ -229,6 +265,29 @@ namespace WinColorSync.UI
                 ApplySelectedAdapters(_currentPalette);
                 TxtStatus.Text = string.Format("Status: Captured screen colors at {0:HH:mm:ss}", DateTime.Now);
             }
+        }
+
+        private void TxtColor_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_isUpdatingUi) return;
+
+            try
+            {
+                if (sender == TxtPrimaryHex) SwatchPrimary.Background = GetMediaBrush(ColorPalette.HexToColor(TxtPrimaryHex.Text, Color.Transparent));
+                else if (sender == TxtSecondaryHex) SwatchSecondary.Background = GetMediaBrush(ColorPalette.HexToColor(TxtSecondaryHex.Text, Color.Transparent));
+                else if (sender == TxtBorderHex) SwatchBorder.Background = GetMediaBrush(ColorPalette.HexToColor(TxtBorderHex.Text, Color.Transparent));
+                else if (sender == TxtTextHex) SwatchText.Background = GetMediaBrush(ColorPalette.HexToColor(TxtTextHex.Text, Color.Transparent));
+                else if (sender == TxtSurfaceHex) SwatchSurface.Background = GetMediaBrush(ColorPalette.HexToColor(TxtSurfaceHex.Text, Color.Transparent));
+                else if (sender == TxtBackgroundHex) SwatchBackground.Background = GetMediaBrush(ColorPalette.HexToColor(TxtBackgroundHex.Text, Color.Transparent));
+            }
+            catch { }
+        }
+
+        private void BtnApplyCustomColors_Click(object sender, RoutedEventArgs e)
+        {
+            _currentPalette = BuildPaletteFromUi();
+            ApplySelectedAdapters(_currentPalette);
+            TxtStatus.Text = string.Format("Status: Custom colors applied at {0:HH:mm:ss}", DateTime.Now);
         }
 
         private void BtnSyncNow_Click(object sender, RoutedEventArgs e)

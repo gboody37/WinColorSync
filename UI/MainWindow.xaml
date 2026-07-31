@@ -1,7 +1,7 @@
 <Window x:Class="WinColorSync.UI.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="WinColorSync - Wallpaper Engine System Synchronizer" Height="600" Width="740"
+        Title="WinColorSync - Wallpaper Engine System Synchronizer" Height="680" Width="760"
         Icon="../AppIcon.png"
         Background="#18181C" Foreground="#FFFFFF"
         WindowStartupLocation="CenterScreen" ResizeMode="CanMinimize">
@@ -20,47 +20,93 @@
             <TextBlock Text="v1.0" FontSize="14" Foreground="#888888" Margin="10,0,0,0" VerticalAlignment="Bottom"/>
         </StackPanel>
 
-        <!-- Color Palette Preview Cards -->
-        <Grid Grid.Row="1" Margin="0,0,0,15">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+        <!-- Interactive Color Customizer Grid -->
+        <Border Grid.Row="1" Background="#222228" CornerRadius="10" Padding="12" Margin="0,0,0,15">
+            <StackPanel>
+                <Grid Margin="0,0,0,8">
+                    <TextBlock Text="🎨 Active Palette Customizer &amp; Manual Overrides" FontSize="15" FontWeight="SemiBold" Foreground="#0078D7" VerticalAlignment="Center"/>
+                    <Button x:Name="BtnApplyCustomColors" Content="🎨 Apply Custom Colors" HorizontalAlignment="Right" Padding="10,4" Background="#6f42c1" Foreground="#FFFFFF" FontWeight="Bold" Click="BtnApplyCustomColors_Click"/>
+                </Grid>
 
-            <!-- Primary Accent -->
-            <Border Grid.Column="0" Margin="5" CornerRadius="8" Background="#0078D7" Height="65" x:Name="CardPrimary">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <TextBlock Text="Primary Accent" FontSize="11" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
-                    <TextBlock x:Name="TxtPrimaryHex" Text="#0078D7" FontSize="13" FontWeight="Bold" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
-                </StackPanel>
-            </Border>
+                <Grid Margin="0,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-            <!-- Secondary Accent -->
-            <Border Grid.Column="1" Margin="5" CornerRadius="8" Background="#005A9E" Height="65" x:Name="CardSecondary">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <TextBlock Text="Secondary" FontSize="11" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
-                    <TextBlock x:Name="TxtSecondaryHex" Text="#005A9E" FontSize="13" FontWeight="Bold" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
-                </StackPanel>
-            </Border>
+                    <!-- Primary Accent -->
+                    <Border Grid.Row="0" Grid.Column="0" Margin="4" CornerRadius="6" Background="#18181C" Padding="8" BorderBrush="#333338" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="Primary Accent (UI / Icons)" FontSize="11" Foreground="#AAAAAA"/>
+                            <DockPanel Margin="0,5,0,0">
+                                <Border x:Name="SwatchPrimary" Width="22" Height="22" CornerRadius="4" Background="#0078D7" Margin="0,0,8,0"/>
+                                <TextBox x:Name="TxtPrimaryHex" Text="#0078D7" Background="#222228" Foreground="#FFFFFF" BorderBrush="#444444" Padding="4,2" FontSize="12" TextChanged="TxtColor_TextChanged"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
 
-            <!-- Surface Accent -->
-            <Border Grid.Column="2" Margin="5" CornerRadius="8" Background="#202832" Height="65" x:Name="CardSurface">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <TextBlock Text="Surface Accent" FontSize="11" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
-                    <TextBlock x:Name="TxtSurfaceHex" Text="#202832" FontSize="13" FontWeight="Bold" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
-                </StackPanel>
-            </Border>
+                    <!-- Secondary Accent -->
+                    <Border Grid.Row="0" Grid.Column="1" Margin="4" CornerRadius="6" Background="#18181C" Padding="8" BorderBrush="#333338" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="Secondary Accent" FontSize="11" Foreground="#AAAAAA"/>
+                            <DockPanel Margin="0,5,0,0">
+                                <Border x:Name="SwatchSecondary" Width="22" Height="22" CornerRadius="4" Background="#005A9E" Margin="0,0,8,0"/>
+                                <TextBox x:Name="TxtSecondaryHex" Text="#005A9E" Background="#222228" Foreground="#FFFFFF" BorderBrush="#444444" Padding="4,2" FontSize="12" TextChanged="TxtColor_TextChanged"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
 
-            <!-- Dark Background -->
-            <Border Grid.Column="3" Margin="5" CornerRadius="8" Background="#18181C" BorderBrush="#333333" BorderThickness="1" Height="65" x:Name="CardBackground">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <TextBlock Text="Background" FontSize="11" Foreground="#AAAAAA" HorizontalAlignment="Center"/>
-                    <TextBlock x:Name="TxtBackgroundHex" Text="#18181C" FontSize="13" FontWeight="Bold" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
-                </StackPanel>
-            </Border>
-        </Grid>
+                    <!-- Window Border & Titlebar -->
+                    <Border Grid.Row="0" Grid.Column="2" Margin="4" CornerRadius="6" Background="#18181C" Padding="8" BorderBrush="#333338" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="Window Border &amp; Titlebar" FontSize="11" Foreground="#AAAAAA"/>
+                            <DockPanel Margin="0,5,0,0">
+                                <Border x:Name="SwatchBorder" Width="22" Height="22" CornerRadius="4" Background="#0078D7" Margin="0,0,8,0"/>
+                                <TextBox x:Name="TxtBorderHex" Text="#0078D7" Background="#222228" Foreground="#FFFFFF" BorderBrush="#444444" Padding="4,2" FontSize="12" TextChanged="TxtColor_TextChanged"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Text & Foreground -->
+                    <Border Grid.Row="1" Grid.Column="0" Margin="4" CornerRadius="6" Background="#18181C" Padding="8" BorderBrush="#333338" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="Text &amp; File Foreground" FontSize="11" Foreground="#AAAAAA"/>
+                            <DockPanel Margin="0,5,0,0">
+                                <Border x:Name="SwatchText" Width="22" Height="22" CornerRadius="4" Background="#FFFFFF" Margin="0,0,8,0"/>
+                                <TextBox x:Name="TxtTextHex" Text="#FFFFFF" Background="#222228" Foreground="#FFFFFF" BorderBrush="#444444" Padding="4,2" FontSize="12" TextChanged="TxtColor_TextChanged"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Surface / Panel Accent -->
+                    <Border Grid.Row="1" Grid.Column="1" Margin="4" CornerRadius="6" Background="#18181C" Padding="8" BorderBrush="#333338" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="Surface / File Pilot Panel" FontSize="11" Foreground="#AAAAAA"/>
+                            <DockPanel Margin="0,5,0,0">
+                                <Border x:Name="SwatchSurface" Width="22" Height="22" CornerRadius="4" Background="#202832" Margin="0,0,8,0"/>
+                                <TextBox x:Name="TxtSurfaceHex" Text="#202832" Background="#222228" Foreground="#FFFFFF" BorderBrush="#444444" Padding="4,2" FontSize="12" TextChanged="TxtColor_TextChanged"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Background Color -->
+                    <Border Grid.Row="1" Grid.Column="2" Margin="4" CornerRadius="6" Background="#18181C" Padding="8" BorderBrush="#333338" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="Dark Background Color" FontSize="11" Foreground="#AAAAAA"/>
+                            <DockPanel Margin="0,5,0,0">
+                                <Border x:Name="SwatchBackground" Width="22" Height="22" CornerRadius="4" Background="#18181C" Margin="0,0,8,0"/>
+                                <TextBox x:Name="TxtBackgroundHex" Text="#18181C" Background="#222228" Foreground="#FFFFFF" BorderBrush="#444444" Padding="4,2" FontSize="12" TextChanged="TxtColor_TextChanged"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </StackPanel>
+        </Border>
 
         <!-- Settings & Toggles -->
         <Border Grid.Row="2" Background="#222228" CornerRadius="10" Padding="15" Margin="0,0,0,15">

@@ -24,7 +24,7 @@ namespace WinColorSync.Adapters
                     string bgHex = StripHash(palette.DarkBackgroundHex);
                     string surfaceHex = StripHash(palette.SurfaceAccentHex);
                     string accentHex = StripHash(palette.PrimaryAccentHex);
-                    string secondaryHex = StripHash(palette.SecondaryAccentHex);
+                    string borderHex = StripHash(palette.WindowBorderHex);
                     string textHex = StripHash(palette.ContrastTextHex);
 
                     content = UpdateJsonColorKey(content, "Clear", bgHex);
@@ -33,10 +33,10 @@ namespace WinColorSync.Adapters
                     content = UpdateJsonColorKey(content, "AlternatingRow", bgHex);
                     content = UpdateJsonColorKey(content, "Surface", surfaceHex);
                     content = UpdateJsonColorKey(content, "Inner", surfaceHex);
-                    content = UpdateJsonColorKey(content, "Border", secondaryHex);
-                    content = UpdateJsonColorKey(content, "Outline", secondaryHex);
-                    content = UpdateJsonColorKey(content, "Separator", secondaryHex);
-                    content = UpdateJsonColorKey(content, "SurfaceSeparator", secondaryHex);
+                    content = UpdateJsonColorKey(content, "Border", borderHex);
+                    content = UpdateJsonColorKey(content, "Outline", borderHex);
+                    content = UpdateJsonColorKey(content, "Separator", borderHex);
+                    content = UpdateJsonColorKey(content, "SurfaceSeparator", borderHex);
                     content = UpdateJsonColorKey(content, "IconTint", accentHex);
                     content = UpdateJsonColorKey(content, "Group", accentHex);
                     content = UpdateJsonColorKey(content, "Progress", accentHex);

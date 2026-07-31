@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Imaging;
 
 namespace WinColorSync.Core
 {
@@ -12,42 +11,73 @@ namespace WinColorSync.Core
         public Color DarkBackground { get; set; }
         public Color LightBackground { get; set; }
         public Color SurfaceAccent { get; set; }
+        public Color WindowBorder { get; set; }
         public Color ContrastText { get; set; }
         public bool IsDarkThemeRecommended { get; set; }
 
         public string PrimaryAccentHex
         {
             get { return ColorToHex(PrimaryAccent); }
+            set { PrimaryAccent = HexToColor(value, PrimaryAccent); }
         }
 
         public string SecondaryAccentHex
         {
             get { return ColorToHex(SecondaryAccent); }
+            set { SecondaryAccent = HexToColor(value, SecondaryAccent); }
         }
 
         public string DarkBackgroundHex
         {
             get { return ColorToHex(DarkBackground); }
+            set { DarkBackground = HexToColor(value, DarkBackground); }
         }
 
         public string LightBackgroundHex
         {
             get { return ColorToHex(LightBackground); }
+            set { LightBackground = HexToColor(value, LightBackground); }
         }
 
         public string SurfaceAccentHex
         {
             get { return ColorToHex(SurfaceAccent); }
+            set { SurfaceAccent = HexToColor(value, SurfaceAccent); }
+        }
+
+        public string WindowBorderHex
+        {
+            get { return ColorToHex(WindowBorder); }
+            set { WindowBorder = HexToColor(value, WindowBorder); }
         }
 
         public string ContrastTextHex
         {
             get { return ColorToHex(ContrastText); }
+            set { ContrastText = HexToColor(value, ContrastText); }
         }
 
-        private static string ColorToHex(Color c)
+        public static string ColorToHex(Color c)
         {
             return string.Format("#{0:X2}{1:X2}{2:X2}", c.R, c.G, c.B);
+        }
+
+        public static Color HexToColor(string hex, Color defaultColor)
+        {
+            if (string.IsNullOrEmpty(hex)) return defaultColor;
+            hex = hex.TrimStart('#');
+            if (hex.Length == 6)
+            {
+                try
+                {
+                    int r = Convert.ToInt32(hex.Substring(0, 2), 16);
+                    int g = Convert.ToInt32(hex.Substring(2, 2), 16);
+                    int b = Convert.ToInt32(hex.Substring(4, 2), 16);
+                    return Color.FromArgb(r, g, b);
+                }
+                catch { }
+            }
+            return defaultColor;
         }
     }
 
@@ -95,18 +125,13 @@ namespace WinColorSync.Core
                 double avgBrightness = totalBrightness / pixels.Count;
                 bool recommendDark = avgBrightness < 0.6;
 
-                // Run K-Means with 6 clusters
                 List<ClusterInfo> clusters = RunKMeansWithFrequency(pixels, 6, 12);
-
-                // Sort clusters by frequency (most dominant first)
                 clusters.Sort((a, b) => b.Count.CompareTo(a.Count));
 
-                // 1. Dominant background color (most frequent cluster)
                 Color dominantBg = clusters.Count > 0 ? clusters[0].Center : Color.FromArgb(24, 24, 28);
                 Color darkBg = recommendDark ? DarkenToBackground(dominantBg) : Color.FromArgb(24, 24, 28);
                 Color lightBg = !recommendDark ? LightenToBackground(dominantBg) : Color.FromArgb(245, 245, 248);
 
-                // 2. Primary Accent: Most vibrant cluster (highest saturation)
                 List<ClusterInfo> vibrantClusters = new List<ClusterInfo>(clusters);
                 vibrantClusters.Sort((a, b) => b.Saturation.CompareTo(a.Saturation));
 
@@ -131,8 +156,8 @@ namespace WinColorSync.Core
                     secondary = Darken(primary, 0.25);
                 }
 
-                // 3. Surface Accent: Blend of background and primary accent
                 Color surface = BlendColors(darkBg, primary, 0.15);
+                Color windowBorder = primary;
                 Color contrastText = recommendDark ? Color.White : Color.Black;
 
                 return new ColorPalette
@@ -142,6 +167,7 @@ namespace WinColorSync.Core
                     DarkBackground = darkBg,
                     LightBackground = lightBg,
                     SurfaceAccent = surface,
+                    WindowBorder = windowBorder,
                     ContrastText = contrastText,
                     IsDarkThemeRecommended = recommendDark
                 };
@@ -296,6 +322,7 @@ namespace WinColorSync.Core
                 DarkBackground = Color.FromArgb(24, 24, 28),
                 LightBackground = Color.FromArgb(245, 245, 248),
                 SurfaceAccent = Color.FromArgb(32, 40, 50),
+                WindowBorder = Color.FromArgb(0, 120, 215),
                 ContrastText = Color.White,
                 IsDarkThemeRecommended = true
             };
