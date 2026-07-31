@@ -45,7 +45,6 @@ function Get-ActiveWallpaperImage {
         } catch {}
     }
 
-    # Fallback to Steam Workshop 431960 directory
     $steamapps = [System.IO.Path]::GetFullPath("$basePath\..\..")
     $workshopDir = Join-Path $steamapps "workshop\content\431960"
     if (Test-Path $workshopDir) {
@@ -53,7 +52,6 @@ function Get-ActiveWallpaperImage {
         if ($latest) { return $latest.FullName }
     }
 
-    # Fallback to Windows native TranscodedWallpaper
     $transcoded = "$env:APPDATA\Microsoft\Windows\Themes\TranscodedWallpaper"
     if (Test-Path $transcoded) { return $transcoded }
 
@@ -94,7 +92,6 @@ function Extract-ColorPalette($imgPath) {
         $avgG = [int]($gTot / $count)
         $avgB = [int]($bTot / $count)
 
-        # Darken background to comfortable level
         $bgR = [Math]::Min(35, [int]($avgR * 0.25))
         $bgG = [Math]::Min(35, [int]($avgG * 0.25))
         $bgB = [Math]::Min(35, [int]($avgB * 0.25))
@@ -142,11 +139,15 @@ function Update-FilePilot($palette) {
 
             Set-Content -Path $fpConfig -Value $content -ErrorAction SilentlyContinue
 
-            $fpilot = Get-Process FPilot -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($fpilot) {
-                $path = $fpilot.Path
-                Stop-Process -Name FPilot -Force -ErrorAction SilentlyContinue
-                Start-Process $path -ErrorAction SilentlyContinue
+            $procs = Get-Process -Name "FPilot", "FilePilot" -ErrorAction SilentlyContinue
+            if ($procs) {
+                foreach ($p in $procs) {
+                    $exePath = $p.Path
+                    Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+                    if ($exePath -and (Test-Path $exePath)) {
+                        Start-Process -FilePath $exePath -ErrorAction SilentlyContinue
+                    }
+                }
             }
         }
     } catch {}
@@ -175,9 +176,7 @@ function Update-Antigravity($palette) {
     } catch {}
 }
 
-Write-Host "🎨 WinColorSync Background Script Active..." -ForegroundColor Cyan
-
-# Main infinite loop
+# Main loop
 while ($true) {
     $activeImg = Get-ActiveWallpaperImage
     if ($activeImg) {
@@ -190,7 +189,6 @@ while ($true) {
             if ($palette) {
                 Update-FilePilot $palette
                 Update-Antigravity $palette
-                Write-Host "$(Get-Date -Format 'HH:mm:ss') - Updated colors (Bg: #$($palette.BgHex), Accent: #$($palette.AccentHex))" -ForegroundColor Green
             }
         }
     }
