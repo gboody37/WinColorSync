@@ -1,5 +1,5 @@
 # Installs WinColorSync background script into Windows Startup
-$startupFolder = [Environment]::GetFolderPath([Environment.SpecialFolder]::Startup)
+$startupFolder = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup"
 $shortcutPath = Join-Path $startupFolder "WinColorSyncBackground.lnk"
 
 $WshShell = New-Object -ComObject WScript.Shell
