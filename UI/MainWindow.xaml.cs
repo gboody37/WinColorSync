@@ -89,15 +89,17 @@ namespace WinColorSync.UI
     ""tintTitlebars"": {2},
     ""syncTerminal"": {3},
     ""syncVSCode"": {4},
-    ""syncRainmeter"": {5},
-    ""exportFiles"": {6},
-    ""customPath"": ""{7}""
+    ""syncFilePilot"": {5},
+    ""syncRainmeter"": {6},
+    ""exportFiles"": {7},
+    ""customPath"": ""{8}""
 }}",
                     ChkSystemAccent.IsChecked == true ? "true" : "false",
                     ChkAutoLightDark.IsChecked == true ? "true" : "false",
                     ChkTitlebars.IsChecked == true ? "true" : "false",
                     ChkTerminal.IsChecked == true ? "true" : "false",
                     ChkVSCode.IsChecked == true ? "true" : "false",
+                    ChkFilePilot.IsChecked == true ? "true" : "false",
                     ChkRainmeter.IsChecked == true ? "true" : "false",
                     ChkExportFiles.IsChecked == true ? "true" : "false",
                     TxtWpPath.Text.Replace("\\", "\\\\"));
@@ -164,6 +166,11 @@ namespace WinColorSync.UI
             if (ChkVSCode.IsChecked == true)
             {
                 VSCodeAdapter.ApplyToVSCode(palette);
+            }
+
+            if (ChkFilePilot.IsChecked == true)
+            {
+                FilePilotAdapter.ApplyToFilePilot(palette);
             }
 
             if (ChkRainmeter.IsChecked == true)
