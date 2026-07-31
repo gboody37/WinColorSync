@@ -3,7 +3,6 @@ using System.Drawing;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Forms;
 using WinColorSync.Adapters;
 using WinColorSync.Core;
 
@@ -12,7 +11,7 @@ namespace WinColorSync.UI
     public partial class MainWindow : Window
     {
         private WallpaperEngineWatcher _watcher;
-        private NotifyIcon _notifyIcon;
+        private System.Windows.Forms.NotifyIcon _notifyIcon;
         private ColorPalette _currentPalette;
         private string _configPath;
         private bool _isUpdatingUi = false;
@@ -53,19 +52,22 @@ namespace WinColorSync.UI
                 string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppIcon.png");
                 if (File.Exists(iconPath))
                 {
-                    icon = Icon.FromHandle(new Bitmap(iconPath).GetHicon());
+                    using (Bitmap bmp = new Bitmap(iconPath))
+                    {
+                        icon = Icon.FromHandle(bmp.GetHicon());
+                    }
                 }
             }
             catch { }
 
-            _notifyIcon = new NotifyIcon
+            _notifyIcon = new System.Windows.Forms.NotifyIcon
             {
                 Icon = icon,
                 Text = "WinColorSync - Wallpaper Engine Synchronizer",
                 Visible = true
             };
 
-            ContextMenu contextMenu = new ContextMenu();
+            System.Windows.Forms.ContextMenu contextMenu = new System.Windows.Forms.ContextMenu();
             contextMenu.MenuItems.Add("⚡ Sync Now", (s, e) => PerformSync());
             contextMenu.MenuItems.Add("📸 Capture Screen Colors", (s, e) => PerformScreenCapture());
             contextMenu.MenuItems.Add("⚙️ Settings / Dashboard", (s, e) => ShowDashboard());
@@ -331,7 +333,7 @@ namespace WinColorSync.UI
 
         private void BtnBrowsePath_Click(object sender, RoutedEventArgs e)
         {
-            using (FolderBrowserDialog dlg = new FolderBrowserDialog())
+            using (System.Windows.Forms.FolderBrowserDialog dlg = new System.Windows.Forms.FolderBrowserDialog())
             {
                 dlg.Description = "Select Wallpaper Engine directory";
                 if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
@@ -344,7 +346,7 @@ namespace WinColorSync.UI
         private void BtnMinimizeTray_Click(object sender, RoutedEventArgs e)
         {
             Hide();
-            _notifyIcon.ShowBalloonTip(2000, "WinColorSync", "Running in system tray", ToolTipIcon.Info);
+            _notifyIcon.ShowBalloonTip(2000, "WinColorSync", "Running in system tray", System.Windows.Forms.ToolTipIcon.Info);
         }
 
         private void ShowDashboard()
@@ -375,7 +377,7 @@ namespace WinColorSync.UI
         {
             e.Cancel = true;
             Hide();
-            _notifyIcon.ShowBalloonTip(2000, "WinColorSync", "Minimized to tray. Right-click to exit.", ToolTipIcon.Info);
+            _notifyIcon.ShowBalloonTip(2000, "WinColorSync", "Minimized to tray. Right-click to exit.", System.Windows.Forms.ToolTipIcon.Info);
         }
     }
 }
