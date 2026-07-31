@@ -1,7 +1,10 @@
 using System;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
+using System.Windows.Forms;
 
 namespace WinColorSync.Core
 {
@@ -9,7 +12,9 @@ namespace WinColorSync.Core
     {
         public event EventHandler<Bitmap> WallpaperChanged;
 
-        private FileSystemWatcher _watcher;
+        private FileSystemWatcher _configWatcher;
+        private FileSystemWatcher _workshopWatcher;
+        private Timer _pollTimer;
         private string _customWallpaperEnginePath;
         private string _lastWallpaperPath;
 
@@ -27,41 +32,73 @@ namespace WinColorSync.Core
         {
             string wpPath = GetWallpaperEnginePath();
 
-            if (Directory.Exists(wpPath))
+            if (!string.IsNullOrEmpty(wpPath) && Directory.Exists(wpPath))
             {
                 try
                 {
-                    _watcher = new FileSystemWatcher(wpPath)
+                    // 1. Watch config.json in Wallpaper Engine directory
+                    _configWatcher = new FileSystemWatcher(wpPath)
                     {
-                        IncludeSubdirectories = true,
-                        Filter = "*.*",
-                        NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName
+                        Filter = "config.json",
+                        NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size
                     };
-
-                    _watcher.Changed += OnDirectoryChanged;
-                    _watcher.Created += OnDirectoryChanged;
-                    _watcher.EnableRaisingEvents = true;
+                    _configWatcher.Changed += OnFileOrDirChanged;
+                    _configWatcher.EnableRaisingEvents = true;
                 }
-                catch (Exception ex)
+                catch { }
+
+                // 2. Watch Steam Workshop folder 431960 if present
+                string workshopPath = GetSteamWorkshopPath(wpPath);
+                if (!string.IsNullOrEmpty(workshopPath) && Directory.Exists(workshopPath))
                 {
-                    Console.WriteLine("[WallpaperEngineWatcher] Watcher error: " + ex.Message);
+                    try
+                    {
+                        _workshopWatcher = new FileSystemWatcher(workshopPath)
+                        {
+                            IncludeSubdirectories = true,
+                            Filter = "*.*",
+                            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName
+                        };
+                        _workshopWatcher.Changed += OnFileOrDirChanged;
+                        _workshopWatcher.Created += OnFileOrDirChanged;
+                        _workshopWatcher.EnableRaisingEvents = true;
+                    }
+                    catch { }
                 }
             }
+
+            // 3. Periodic polling fallback (every 3 seconds) for instant detection on wallpaper swap
+            _pollTimer = new Timer();
+            _pollTimer.Interval = 3000;
+            _pollTimer.Tick += (s, e) => CheckCurrentWallpaper();
+            _pollTimer.Start();
 
             CheckCurrentWallpaper();
         }
 
         public void Stop()
         {
-            if (_watcher != null)
+            if (_configWatcher != null)
             {
-                _watcher.EnableRaisingEvents = false;
-                _watcher.Dispose();
-                _watcher = null;
+                _configWatcher.EnableRaisingEvents = false;
+                _configWatcher.Dispose();
+                _configWatcher = null;
+            }
+            if (_workshopWatcher != null)
+            {
+                _workshopWatcher.EnableRaisingEvents = false;
+                _workshopWatcher.Dispose();
+                _workshopWatcher = null;
+            }
+            if (_pollTimer != null)
+            {
+                _pollTimer.Stop();
+                _pollTimer.Dispose();
+                _pollTimer = null;
             }
         }
 
-        private void OnDirectoryChanged(object sender, FileSystemEventArgs e)
+        private void OnFileOrDirChanged(object sender, FileSystemEventArgs e)
         {
             CheckCurrentWallpaper();
         }
@@ -70,25 +107,51 @@ namespace WinColorSync.Core
         {
             try
             {
-                string wpImage = FindWallpaperEngineActivePreview();
+                // Method 1: Read active wallpaper path from Wallpaper Engine's config.json
+                string wpImage = ParseActiveWallpaperFromConfig();
 
+                // Method 2: Scan Workshop & Project directories for latest preview
+                if (string.IsNullOrEmpty(wpImage) || !File.Exists(wpImage))
+                {
+                    wpImage = FindLatestWorkshopOrProjectPreview();
+                }
+
+                // Method 3: Windows Native Wallpaper fallback
                 if (string.IsNullOrEmpty(wpImage) || !File.Exists(wpImage))
                 {
                     wpImage = GetWindowsNativeWallpaperPath();
                 }
 
-                if (!string.IsNullOrEmpty(wpImage) && File.Exists(wpImage) && wpImage != _lastWallpaperPath)
+                if (!string.IsNullOrEmpty(wpImage) && File.Exists(wpImage))
                 {
-                    _lastWallpaperPath = wpImage;
-                    using (FileStream stream = new FileStream(wpImage, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                    string fileKey = wpImage + "_" + File.GetLastWriteTime(wpImage).Ticks;
+                    if (fileKey != _lastWallpaperPath)
                     {
-                        Bitmap bmp = new Bitmap(stream);
-                        Bitmap copy = new Bitmap(bmp);
+                        _lastWallpaperPath = fileKey;
+                        using (FileStream stream = new FileStream(wpImage, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                        {
+                            Bitmap bmp = new Bitmap(stream);
+                            Bitmap copy = new Bitmap(bmp);
+                            if (WallpaperChanged != null)
+                            {
+                                WallpaperChanged(this, copy);
+                            }
+                            return copy;
+                        }
+                    }
+                }
+                else
+                {
+                    // Method 4: Desktop screen capture fallback for video/web wallpapers
+                    Bitmap screenCap = CaptureDesktopSnapshot();
+                    if (screenCap != null && _lastWallpaperPath != "screencap")
+                    {
+                        _lastWallpaperPath = "screencap";
                         if (WallpaperChanged != null)
                         {
-                            WallpaperChanged(this, copy);
+                            WallpaperChanged(this, screenCap);
                         }
-                        return copy;
+                        return screenCap;
                     }
                 }
             }
@@ -100,49 +163,98 @@ namespace WinColorSync.Core
             return null;
         }
 
-        private string FindWallpaperEngineActivePreview()
+        private string ParseActiveWallpaperFromConfig()
         {
             string basePath = GetWallpaperEnginePath();
-            if (string.IsNullOrEmpty(basePath) || !Directory.Exists(basePath)) return null;
+            if (string.IsNullOrEmpty(basePath)) return null;
 
-            string projectsDir = Path.Combine(basePath, @"projects\defaultprojects");
-            string myProjectsDir = Path.Combine(basePath, @"projects\myprojects");
+            string configPath = Path.Combine(basePath, "config.json");
+            if (!File.Exists(configPath)) return null;
 
-            string bestPreview = FindLatestPreviewFile(projectsDir);
-            if (string.IsNullOrEmpty(bestPreview))
+            try
             {
-                bestPreview = FindLatestPreviewFile(myProjectsDir);
-            }
+                string json = File.ReadAllText(configPath);
 
-            return bestPreview;
+                // Match "file" : "C:/.../workshop/content/431960/12345/..." or project.json
+                MatchCollection matches = Regex.Matches(json, @"""file""\s*:\s*""([^""]+)""");
+                for (int i = matches.Count - 1; i >= 0; i--)
+                {
+                    string filePath = matches[i].Groups[1].Value.Replace('/', '\\');
+                    string dirPath = Path.GetDirectoryName(filePath);
+
+                    if (Directory.Exists(dirPath))
+                    {
+                        string preview = FindPreviewInDir(dirPath);
+                        if (!string.IsNullOrEmpty(preview))
+                        {
+                            return preview;
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return null;
         }
 
-        private string FindLatestPreviewFile(string dir)
+        private string FindLatestWorkshopOrProjectPreview()
         {
-            if (!Directory.Exists(dir)) return null;
+            string basePath = GetWallpaperEnginePath();
+            if (string.IsNullOrEmpty(basePath)) return null;
 
+            string workshopPath = GetSteamWorkshopPath(basePath);
             DateTime newest = DateTime.MinValue;
             string newestFile = null;
 
-            foreach (string subDir in Directory.GetDirectories(dir))
+            if (!string.IsNullOrEmpty(workshopPath) && Directory.Exists(workshopPath))
             {
-                string[] candidates = new string[] { "preview.jpg", "preview.png", "preview.gif" };
-                foreach (string c in candidates)
+                foreach (string subDir in Directory.GetDirectories(workshopPath))
                 {
-                    string p = Path.Combine(subDir, c);
-                    if (File.Exists(p))
+                    string preview = FindPreviewInDir(subDir);
+                    if (!string.IsNullOrEmpty(preview))
                     {
-                        DateTime writeTime = File.GetLastWriteTime(p);
+                        DateTime writeTime = File.GetLastWriteTime(preview);
                         if (writeTime > newest)
                         {
                             newest = writeTime;
-                            newestFile = p;
+                            newestFile = preview;
                         }
                     }
                 }
             }
 
             return newestFile;
+        }
+
+        private string FindPreviewInDir(string dir)
+        {
+            if (!Directory.Exists(dir)) return null;
+
+            string[] candidates = new string[] { "preview.jpg", "preview.png", "preview.gif" };
+            foreach (string c in candidates)
+            {
+                string p = Path.Combine(dir, c);
+                if (File.Exists(p)) return p;
+            }
+            return null;
+        }
+
+        private Bitmap CaptureDesktopSnapshot()
+        {
+            try
+            {
+                Rectangle bounds = Screen.PrimaryScreen.Bounds;
+                Bitmap bmp = new Bitmap(bounds.Width, bounds.Height, PixelFormat.Format32bppArgb);
+                using (Graphics g = Graphics.FromImage(bmp))
+                {
+                    g.CopyFromScreen(bounds.X, bounds.Y, 0, 0, bounds.Size, CopyPixelOperation.SourceCopy);
+                }
+                return bmp;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private string GetWindowsNativeWallpaperPath()
@@ -159,6 +271,18 @@ namespace WinColorSync.Core
                 if (File.Exists(transcoded)) return transcoded;
             }
             catch { }
+
+            return null;
+        }
+
+        private string GetSteamWorkshopPath(string wpPath)
+        {
+            if (string.IsNullOrEmpty(wpPath)) return null;
+
+            // e.g. C:\Program Files (x86)\Steam\steamapps\common\wallpaper_engine -> C:\Program Files (x86)\Steam\steamapps\workshop\content\431960
+            string steamapps = Path.GetFullPath(Path.Combine(wpPath, @"..\.."));
+            string workshopPath = Path.Combine(steamapps, @"workshop\content\431960");
+            if (Directory.Exists(workshopPath)) return workshopPath;
 
             return null;
         }
