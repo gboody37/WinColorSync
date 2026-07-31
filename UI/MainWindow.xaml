@@ -149,10 +149,11 @@
             <TextBlock x:Name="TxtStatus" Text="Status: Ready" Foreground="#888888" VerticalAlignment="Center"/>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <Button x:Name="BtnSaveSettings" Content="💾 Save Settings" Width="110" Height="35" Background="#28a745" Foreground="#FFFFFF" FontWeight="Bold" Click="BtnSaveSettings_Click" Margin="0,0,6,0"/>
-                <Button x:Name="BtnCaptureScreen" Content="📸 Screen Capture" Width="120" Height="35" Background="#6f42c1" Foreground="#FFFFFF" FontWeight="Bold" Click="BtnCaptureScreen_Click" Margin="0,0,6,0"/>
+                <Button x:Name="BtnResetDefaults" Content="🔄 Reset Defaults" Width="120" Height="35" Background="#dc3545" Foreground="#FFFFFF" FontWeight="Bold" Click="BtnResetDefaults_Click" Margin="0,0,6,0"/>
+                <Button x:Name="BtnSaveSettings" Content="💾 Save" Width="70" Height="35" Background="#28a745" Foreground="#FFFFFF" FontWeight="Bold" Click="BtnSaveSettings_Click" Margin="0,0,6,0"/>
+                <Button x:Name="BtnCaptureScreen" Content="📸 Capture Screen" Width="120" Height="35" Background="#6f42c1" Foreground="#FFFFFF" FontWeight="Bold" Click="BtnCaptureScreen_Click" Margin="0,0,6,0"/>
                 <Button x:Name="BtnSyncNow" Content="⚡ Sync Now" Width="100" Height="35" Background="#0078D7" Foreground="#FFFFFF" FontWeight="Bold" Click="BtnSyncNow_Click" Margin="0,0,6,0"/>
-                <Button x:Name="BtnMinimizeTray" Content="📌 Tray" Width="60" Height="35" Background="#333338" Foreground="#FFFFFF" Click="BtnMinimizeTray_Click"/>
+                <Button x:Name="BtnMinimizeTray" Content="📌 Tray" Width="55" Height="35" Background="#333338" Foreground="#FFFFFF" Click="BtnMinimizeTray_Click"/>
             </StackPanel>
         </Grid>
     </Grid>

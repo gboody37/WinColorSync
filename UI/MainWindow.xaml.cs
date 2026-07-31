@@ -71,6 +71,7 @@ namespace WinColorSync.UI
             System.Windows.Forms.ContextMenu contextMenu = new System.Windows.Forms.ContextMenu();
             contextMenu.MenuItems.Add("⚡ Sync Now", (s, e) => PerformSync());
             contextMenu.MenuItems.Add("📸 Capture Screen Colors", (s, e) => PerformScreenCapture());
+            contextMenu.MenuItems.Add("🔄 Reset Windows Defaults", (s, e) => ResetWindowsDefaults());
             contextMenu.MenuItems.Add("⚙️ Settings / Dashboard", (s, e) => ShowDashboard());
             contextMenu.MenuItems.Add("-");
             contextMenu.MenuItems.Add("❌ Exit", (s, e) => ExitApp());
@@ -270,6 +271,14 @@ namespace WinColorSync.UI
             }
         }
 
+        private void ResetWindowsDefaults()
+        {
+            WindowsThemeEngine.ResetWindowsDefaultColors();
+            _currentPalette = ColorExtractor.GetDefaultPalette();
+            UpdateUiPalette(_currentPalette);
+            TxtStatus.Text = "Status: Restored native Windows default accent colors!";
+        }
+
         private void Swatch_MouseDown(object sender, MouseButtonEventArgs e)
         {
             using (System.Windows.Forms.ColorDialog dlg = new System.Windows.Forms.ColorDialog())
@@ -318,6 +327,11 @@ namespace WinColorSync.UI
                 else if (sender == TxtBackgroundHex) SwatchBackground.Background = GetMediaBrush(ColorPalette.HexToColor(TxtBackgroundHex.Text, Color.Transparent));
             }
             catch { }
+        }
+
+        private void BtnResetDefaults_Click(object sender, RoutedEventArgs e)
+        {
+            ResetWindowsDefaults();
         }
 
         private void BtnApplyCustomColors_Click(object sender, RoutedEventArgs e)

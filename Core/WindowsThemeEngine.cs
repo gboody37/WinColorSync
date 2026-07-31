@@ -84,6 +84,52 @@ namespace WinColorSync.Core
             }
         }
 
+        public static void ResetWindowsDefaultColors()
+        {
+            try
+            {
+                // Delete custom accent palette overrides from Registry
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Explorer\Accent", true))
+                {
+                    if (key != null)
+                    {
+                        try { key.DeleteValue("AccentColorMenu"); } catch { }
+                        try { key.DeleteValue("AccentPalette"); } catch { }
+                    }
+                }
+
+                // Enable AutoColorization in Windows Desktop settings
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Control Panel\Desktop", true))
+                {
+                    if (key != null)
+                    {
+                        key.SetValue("AutoColorization", 1, RegistryValueKind.DWord);
+                    }
+                }
+
+                // Reset DWM Colorization to default Windows Blue
+                uint defaultBlueArgb = 0xC40078D7;
+                try
+                {
+                    DWMCOLORIZATIONPARAMS paramsDwm;
+                    DwmGetColorizationParameters(out paramsDwm);
+                    paramsDwm.ColorizationColor = defaultBlueArgb;
+                    paramsDwm.ColorizationColorBalance = 100;
+                    DwmSetColorizationParameters(ref paramsDwm, 0);
+                }
+                catch { }
+
+                // Notify Windows Explorer
+                UIntPtr result;
+                SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, UIntPtr.Zero, "ImmersiveColorSet", SMTO_ABORTIFHUNG, 100, out result);
+                SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, UIntPtr.Zero, "WM_SETTINGCHANGE", SMTO_ABORTIFHUNG, 100, out result);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("[WindowsThemeEngine] Reset error: " + ex.Message);
+            }
+        }
+
         private static void SetRegistryAccentColors(Color accent)
         {
             try
