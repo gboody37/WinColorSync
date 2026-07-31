@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.IO;
 using System.Windows;
 using System.Windows.Forms;
 using WinColorSync.Adapters;
@@ -12,15 +13,29 @@ namespace WinColorSync.UI
         private WallpaperEngineWatcher _watcher;
         private NotifyIcon _notifyIcon;
         private ColorPalette _currentPalette;
+        private string _configPath;
 
         public MainWindow()
         {
             InitializeComponent();
+            InitializeConfigPath();
             InitializeTrayIcon();
+            LoadSettings();
 
-            _watcher = new WallpaperEngineWatcher();
+            _watcher = new WallpaperEngineWatcher(TxtWpPath.Text);
             _watcher.WallpaperChanged += OnWallpaperChanged;
             _watcher.Start();
+        }
+
+        private void InitializeConfigPath()
+        {
+            string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            string dir = Path.Combine(userProfile, ".wincolorsync");
+            if (!Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+            _configPath = Path.Combine(dir, "config.json");
         }
 
         private void InitializeTrayIcon()
@@ -34,12 +49,66 @@ namespace WinColorSync.UI
 
             ContextMenu contextMenu = new ContextMenu();
             contextMenu.MenuItems.Add("⚡ Sync Now", (s, e) => PerformSync());
-            contextMenu.MenuItems.Add("🖥️ Open Dashboard", (s, e) => ShowDashboard());
+            contextMenu.MenuItems.Add("⚙️ Settings / Dashboard", (s, e) => ShowDashboard());
             contextMenu.MenuItems.Add("-");
             contextMenu.MenuItems.Add("❌ Exit", (s, e) => ExitApp());
 
             _notifyIcon.ContextMenu = contextMenu;
             _notifyIcon.DoubleClick += (s, e) => ShowDashboard();
+        }
+
+        private void LoadSettings()
+        {
+            try
+            {
+                if (File.Exists(_configPath))
+                {
+                    string content = File.ReadAllText(_configPath);
+                    if (content.Contains("\"customPath\":"))
+                    {
+                        int start = content.IndexOf("\"customPath\":") + 13;
+                        int firstQuote = content.IndexOf('"', start) + 1;
+                        int endQuote = content.IndexOf('"', firstQuote);
+                        if (firstQuote > 0 && endQuote > firstQuote)
+                        {
+                            TxtWpPath.Text = content.Substring(firstQuote, endQuote - firstQuote);
+                        }
+                    }
+                }
+            }
+            catch { }
+        }
+
+        private void SaveSettings()
+        {
+            try
+            {
+                string json = string.Format(@"{{
+    ""syncSystemAccent"": {0},
+    ""autoLightDark"": {1},
+    ""tintTitlebars"": {2},
+    ""syncTerminal"": {3},
+    ""syncVSCode"": {4},
+    ""syncRainmeter"": {5},
+    ""exportFiles"": {6},
+    ""customPath"": ""{7}""
+}}",
+                    ChkSystemAccent.IsChecked == true ? "true" : "false",
+                    ChkAutoLightDark.IsChecked == true ? "true" : "false",
+                    ChkTitlebars.IsChecked == true ? "true" : "false",
+                    ChkTerminal.IsChecked == true ? "true" : "false",
+                    ChkVSCode.IsChecked == true ? "true" : "false",
+                    ChkRainmeter.IsChecked == true ? "true" : "false",
+                    ChkExportFiles.IsChecked == true ? "true" : "false",
+                    TxtWpPath.Text.Replace("\\", "\\\\"));
+
+                File.WriteAllText(_configPath, json);
+                TxtStatus.Text = "Status: Settings saved successfully!";
+            }
+            catch (Exception ex)
+            {
+                TxtStatus.Text = "Status: Error saving settings: " + ex.Message;
+            }
         }
 
         private void OnWallpaperChanged(object sender, Bitmap wallpaperBitmap)
@@ -128,6 +197,31 @@ namespace WinColorSync.UI
         private void BtnSyncNow_Click(object sender, RoutedEventArgs e)
         {
             PerformSync();
+        }
+
+        private void BtnSaveSettings_Click(object sender, RoutedEventArgs e)
+        {
+            SaveSettings();
+            if (_watcher != null)
+            {
+                _watcher.Stop();
+            }
+            _watcher = new WallpaperEngineWatcher(TxtWpPath.Text);
+            _watcher.WallpaperChanged += OnWallpaperChanged;
+            _watcher.Start();
+            PerformSync();
+        }
+
+        private void BtnBrowsePath_Click(object sender, RoutedEventArgs e)
+        {
+            using (FolderBrowserDialog dlg = new FolderBrowserDialog())
+            {
+                dlg.Description = "Select Wallpaper Engine directory";
+                if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    TxtWpPath.Text = dlg.SelectedPath;
+                }
+            }
         }
 
         private void BtnMinimizeTray_Click(object sender, RoutedEventArgs e)
