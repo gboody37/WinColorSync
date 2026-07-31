@@ -113,9 +113,10 @@ namespace WinColorSync.UI
     ""syncTerminal"": {3},
     ""syncVSCode"": {4},
     ""syncFilePilot"": {5},
-    ""syncRainmeter"": {6},
-    ""exportFiles"": {7},
-    ""customPath"": ""{8}""
+    ""syncAntigravity"": {6},
+    ""syncRainmeter"": {7},
+    ""exportFiles"": {8},
+    ""customPath"": ""{9}""
 }}",
                     ChkSystemAccent.IsChecked == true ? "true" : "false",
                     ChkAutoLightDark.IsChecked == true ? "true" : "false",
@@ -123,6 +124,7 @@ namespace WinColorSync.UI
                     ChkTerminal.IsChecked == true ? "true" : "false",
                     ChkVSCode.IsChecked == true ? "true" : "false",
                     ChkFilePilot.IsChecked == true ? "true" : "false",
+                    ChkAntigravity.IsChecked == true ? "true" : "false",
                     ChkRainmeter.IsChecked == true ? "true" : "false",
                     ChkExportFiles.IsChecked == true ? "true" : "false",
                     TxtWpPath.Text.Replace("\\", "\\\\"));
@@ -215,6 +217,16 @@ namespace WinColorSync.UI
                 WindowsThemeEngine.ApplyPaletteToWindows(palette, ChkTitlebars.IsChecked == true, ChkAutoLightDark.IsChecked == true);
             }
 
+            if (ChkFilePilot.IsChecked == true)
+            {
+                FilePilotAdapter.ApplyToFilePilot(palette);
+            }
+
+            if (ChkAntigravity.IsChecked == true)
+            {
+                AntigravityAdapter.ApplyToAntigravity(palette);
+            }
+
             if (ChkTerminal.IsChecked == true)
             {
                 TerminalAdapter.ApplyToTerminal(palette);
@@ -223,11 +235,6 @@ namespace WinColorSync.UI
             if (ChkVSCode.IsChecked == true)
             {
                 VSCodeAdapter.ApplyToVSCode(palette);
-            }
-
-            if (ChkFilePilot.IsChecked == true)
-            {
-                FilePilotAdapter.ApplyToFilePilot(palette);
             }
 
             if (ChkRainmeter.IsChecked == true)

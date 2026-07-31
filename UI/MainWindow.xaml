@@ -114,14 +114,17 @@
                 <StackPanel>
                     <TextBlock Text="⚙️ Active Integrations &amp; Settings" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" Foreground="#0078D7"/>
 
-                    <CheckBox x:Name="ChkSystemAccent" Content="Sync Windows System Accent Color &amp; Registry" IsChecked="True" Foreground="#FFFFFF" Margin="0,4"/>
-                    <CheckBox x:Name="ChkAutoLightDark" Content="Auto Light / Dark Theme Switching" IsChecked="True" Foreground="#FFFFFF" Margin="0,4"/>
-                    <CheckBox x:Name="ChkTitlebars" Content="Tint Window Titlebars &amp; Borders Live" IsChecked="True" Foreground="#FFFFFF" Margin="0,4"/>
-                    <CheckBox x:Name="ChkTerminal" Content="Sync Microsoft Windows Terminal Scheme" IsChecked="True" Foreground="#FFFFFF" Margin="0,4"/>
-                    <CheckBox x:Name="ChkVSCode" Content="Sync Visual Studio Code Theme (workbench.colorCustomizations)" IsChecked="True" Foreground="#FFFFFF" Margin="0,4"/>
-                    <CheckBox x:Name="ChkFilePilot" Content="Sync Voidstar File Pilot Theme (FPilot-Config.json)" IsChecked="True" Foreground="#FFFFFF" Margin="0,4"/>
-                    <CheckBox x:Name="ChkRainmeter" Content="Sync Rainmeter Skin Colors &amp; Trigger Refresh" IsChecked="True" Foreground="#FFFFFF" Margin="0,4"/>
+                    <CheckBox x:Name="ChkFilePilot" Content="Sync Voidstar File Pilot Theme (FPilot-Config.json)" IsChecked="True" Foreground="#FFFFFF" Margin="0,4" FontWeight="Bold"/>
+                    <CheckBox x:Name="ChkAntigravity" Content="Sync Antigravity IDE Theme &amp; CSS Variables" IsChecked="True" Foreground="#FFFFFF" Margin="0,4" FontWeight="Bold"/>
                     <CheckBox x:Name="ChkExportFiles" Content="Export theme.css &amp; theme.json for custom web apps / browsers" IsChecked="True" Foreground="#FFFFFF" Margin="0,4"/>
+
+                    <TextBlock Text="Optional Integrations (Disabled by default):" Foreground="#888888" FontSize="12" Margin="0,10,0,4"/>
+                    <CheckBox x:Name="ChkSystemAccent" Content="Sync Windows System Accent Color &amp; Registry" IsChecked="False" Foreground="#888888" Margin="0,3"/>
+                    <CheckBox x:Name="ChkAutoLightDark" Content="Auto Light / Dark Theme Switching" IsChecked="False" Foreground="#888888" Margin="0,3"/>
+                    <CheckBox x:Name="ChkTitlebars" Content="Tint Window Titlebars &amp; Borders Live" IsChecked="False" Foreground="#888888" Margin="0,3"/>
+                    <CheckBox x:Name="ChkTerminal" Content="Sync Microsoft Windows Terminal Scheme" IsChecked="False" Foreground="#888888" Margin="0,3"/>
+                    <CheckBox x:Name="ChkVSCode" Content="Sync Visual Studio Code Theme (workbench.colorCustomizations)" IsChecked="False" Foreground="#888888" Margin="0,3"/>
+                    <CheckBox x:Name="ChkRainmeter" Content="Sync Rainmeter Skin Colors &amp; Trigger Refresh" IsChecked="False" Foreground="#888888" Margin="0,3"/>
 
                     <!-- Custom Wallpaper Engine Folder Input -->
                     <TextBlock Text="Wallpaper Engine Path:" Foreground="#AAAAAA" FontSize="12" Margin="0,10,0,4"/>

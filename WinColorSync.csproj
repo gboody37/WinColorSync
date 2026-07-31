@@ -75,6 +75,7 @@
     <Compile Include="Adapters\VSCodeAdapter.cs" />
     <Compile Include="Adapters\RainmeterAdapter.cs" />
     <Compile Include="Adapters\FilePilotAdapter.cs" />
+    <Compile Include="Adapters\AntigravityAdapter.cs" />
     <Compile Include="Adapters\ThemeExporter.cs" />
   </ItemGroup>
 
